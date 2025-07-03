@@ -235,9 +235,9 @@ function get_harwell_data($date,$precision=1)
 	 $harwell_directory="cern/harwell/";
 
 	 $previous_day=get_previous_day($date);
-	 ereg("([01234567890]{2})([0123456789]{2})([0123456789]{2})",$previous_day,$temp_arr_1);
+	 preg_match("/([01234567890]{2})([0123456789]{2})([0123456789]{2})/",$previous_day,$temp_arr_1);
 	 $file_1=$temp_arr_1[1].".".$temp_arr_1[2].".".$temp_arr_1[3]."..txt";
-	 ereg("([01234567890]{2})([0123456789]{2})([0123456789]{2})",$date,$temp_arr_2);
+	 preg_match("/([01234567890]{2})([0123456789]{2})([0123456789]{2})/",$date,$temp_arr_2);
 	 $file_2=$temp_arr_2[1].".".$temp_arr_2[2].".".$temp_arr_2[3]."..txt";
 	 $lines_arr_1=@file($root_location.$harwell_directory.$file_1);
 	 $lines_arr_2=@file($root_location.$harwell_directory.$file_2);
@@ -368,9 +368,9 @@ function get_uv_data($date)
      global $root_location;
 	 $harwell_directory="meteo/uv/";
 	 $previous_day=get_previous_day($date);
-	 ereg("([01234567890]{2})([0123456789]{2})([0123456789]{2})",$previous_day,$temp_arr_1);
+	 preg_match("/([01234567890]{2})([0123456789]{2})([0123456789]{2})/",$previous_day,$temp_arr_1);
 	 $file_1=$temp_arr_1[1].".".$temp_arr_1[2].".".$temp_arr_1[3]."..txt";
-	 ereg("([01234567890]{2})([0123456789]{2})([0123456789]{2})",$date,$temp_arr_2);
+	 preg_match("/([01234567890]{2})([0123456789]{2})([0123456789]{2})/",$date,$temp_arr_2);
 	 $file_2=$temp_arr_2[1].".".$temp_arr_2[2].".".$temp_arr_2[3]."..txt";
 	 $lines_arr_1=@file($root_location.$harwell_directory.$file_1);
 	 $lines_arr_2=@file($root_location.$harwell_directory.$file_2);
@@ -444,9 +444,9 @@ function get_uv_b_data($date)
      global $root_location;
 	 $harwell_directory="baliz02/Uv_b/";
 	 $previous_day=get_previous_day($date);
-	 ereg("([01234567890]{2})([0123456789]{2})([0123456789]{2})",$previous_day,$temp_arr_1);
+	 preg_match("/([01234567890]{2})([0123456789]{2})([0123456789]{2})/",$previous_day,$temp_arr_1);
 	 $file_1=$temp_arr_1[1].".".$temp_arr_1[2].".".$temp_arr_1[3]."..txt";
-	 ereg("([01234567890]{2})([0123456789]{2})([0123456789]{2})",$date,$temp_arr_2);
+	 preg_match("/([01234567890]{2})([0123456789]{2})([0123456789]{2})/",$date,$temp_arr_2);
 	 $file_2=$temp_arr_2[1].".".$temp_arr_2[2].".".$temp_arr_2[3]."..txt";
 	 $lines_arr_1=@file($root_location.$harwell_directory.$file_1);
 	 $lines_arr_2=@file($root_location.$harwell_directory.$file_2);
@@ -514,7 +514,7 @@ function get_environ_data($date)
      global $root_location;
 	 $environ_directory="cern/environ/";
 
-	 ereg("([01234567890]{2})([0123456789]{2})([0123456789]{2})",$date,$temp_arr);
+	 preg_match("/([01234567890]{2})([0123456789]{2})([0123456789]{2})/",$date,$temp_arr);
      $file="ENVIR".$temp_arr[2].".PRN";
      $file_location=$root_location.$environ_directory.$file;
 	 $fp=fopen($file_location,"r");
@@ -526,7 +526,7 @@ function get_environ_data($date)
 	 $raw_day="";
 	 for ($i=0;$i<$arr_size;$i++)
 	    {
-		  $ok=ereg("^([0123456789]{2}/[0123456789]{2}/[0123456789]{4})","$arr[$i]",$file_date);
+		  $ok=preg_match("/^([0123456789]{2}/[0123456789]{2}/[0123456789]{4})/","$arr[$i]",$file_date);
 		  if ($ok)
 		     {
 	           if ($file_date[1]==$environ_date)
@@ -564,7 +564,7 @@ function get_environ_data($date)
 
 function rearrange_date($date)
    {
-    ereg("([01234567890]{1,2})\.([0123456789]{1,2})\.([0123456789]{2,4})",$date,$temp_arr);
+    preg_match("/([01234567890]{1,2})\.([0123456789]{1,2})\.([0123456789]{2,4})/",$date,$temp_arr);
     if (strlen($temp_arr[1])==1) {$temp_arr[1]="0".$temp_arr[1];}
     if (strlen($temp_arr[2])==1) {$temp_arr[2]="0".$temp_arr[2];}
     $rezult=$temp_arr[3]."-".$temp_arr[2]."-".$temp_arr[1];
@@ -653,7 +653,7 @@ function get_days_timestamps($min_time,$max_time)
      for ($i=$first_date;$i<=$last_date;$i=$day_factor+get_next_day($i))
 	     {
 		   $days_array[$counter]=strtotime($i);
-		   if (ereg("0330$",$i)) {$days_array[$counter]+=3600;}
+		   if (preg_match("/0330$/",$i)) {$days_array[$counter]+=3600;}
 		   $counter++;
 		 }
 	 return $days_array;
@@ -1279,7 +1279,7 @@ if (isset($_GET["device"]) && isset($_GET["start_date"]))
        {
        	show_error("No valid device specified");
        }
-    elseif (!ereg("^[0123456789]{6}$",$_GET["start_date"]) || !ereg("^[0123456789]{6}$",$_GET["stop_date"]))
+    elseif (!preg_match("/^[0123456789]{6}$/",$_GET["start_date"]) || !preg_match("/^[0123456789]{6}$/",$_GET["stop_date"]))
        {
        	show_error("No valid date specified");
        }

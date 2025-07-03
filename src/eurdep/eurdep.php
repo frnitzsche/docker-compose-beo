@@ -38,7 +38,7 @@ function get_valid_files()
       
      while ($file=readdir($dp_1))
         {
-          if (ereg("([0123456789]{2})\.([0123456789]{2})\.([0123456789]{2}).*",$file,$temp_arr_1)) 
+          if (preg_match("/([0123456789]{2})\.([0123456789]{2})\.([0123456789]{2}).*/",$file,$temp_arr_1)) 
              {
                $harwell_arr[$temp_arr_1[1].$temp_arr_1[2].$temp_arr_1[3]]=$temp_arr_1[1].$temp_arr_1[2].$temp_arr_1[3];
              }
@@ -46,7 +46,7 @@ function get_valid_files()
        
      while ($file=readdir($dp_2))
         {
-          if (ereg("([0123456789]{2})([0123456789]{2})([0123456789]{2})[0123456789]{2}\.CSV",$file,$temp_arr_2)) 
+          if (preg_match("/([0123456789]{2})([0123456789]{2})([0123456789]{2})[0123456789]{2}\.CSV/",$file,$temp_arr_2)) 
              {
                $meteo_arr[$temp_arr_2[1].$temp_arr_2[2].$temp_arr_2[3]]=$temp_arr_2[1].$temp_arr_2[2].$temp_arr_2[3];
              }

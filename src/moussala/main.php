@@ -43,7 +43,7 @@ function shadow($content) {
 }
 
 
-if (isset($_POST["max"]) && ereg("^[0123456789.-]{1,}$",$_POST["max"])) {
+if (isset($_POST["max"]) && preg_match("/^[0123456789.-]{1,}$/",$_POST["max"])) {
   $max_value=$_POST["max"];
 }
 else {
@@ -51,7 +51,7 @@ else {
   $_POST["max"]="";
 }
 
-if (isset($_POST["min"]) && ereg("^[0123456789.-]{1,}$",$_POST["min"])) {
+if (isset($_POST["min"]) && preg_match("/^[0123456789.-]{1,}$/",$_POST["min"])) {
   $min_value=$_POST["min"];
 }
 else {
@@ -173,12 +173,12 @@ if (isset($_GET["start_date"]) && isset($_GET["stop_date"]) && !isset($_POST["st
       $_GET["stop_date"]=$_GET["start_date"];
     }
   
-    ereg("([0123456789]{2})([0123456789]{2})([0123456789]{2})",$_GET["start_date"],$start_arr);
+    preg_match("/([0123456789]{2})([0123456789]{2})([0123456789]{2})/",$_GET["start_date"],$start_arr);
     $_POST["start_year"]="20".$start_arr[1];
     $_POST["start_month"]=$start_arr[2];
     $_POST["start_day"]=$start_arr[3];
 
-    ereg("([0123456789]{2})([0123456789]{2})([0123456789]{2})",$_GET["stop_date"],$stop_arr);
+    preg_match("/([0123456789]{2})([0123456789]{2})([0123456789]{2})/",$_GET["stop_date"],$stop_arr);
     $_POST["stop_year"]="20".$stop_arr[1];
     $_POST["stop_month"]=$stop_arr[2];
     $_POST["stop_day"]=$stop_arr[3];
@@ -206,8 +206,8 @@ if (isset($_POST["start_day"]) && isset($_POST["start_month"]) && isset($_POST["
    $start_date_post="20".get_previous_day($start_date_post); 
    $stop_date_post="20".get_previous_day($stop_date_post); 
   }
-  ereg("([0123456789]{4})([0123456789]{2})([0123456789]{2})",$start_date_post,$start_arr_temp);
-  ereg("([0123456789]{4})([0123456789]{2})([0123456789]{2})",$stop_date_post,$stop_arr_temp);
+  preg_match("/([0123456789]{4})([0123456789]{2})([0123456789]{2})/",$start_date_post,$start_arr_temp);
+  preg_match("/([0123456789]{4})([0123456789]{2})([0123456789]{2})/",$stop_date_post,$stop_arr_temp);
   $_POST["start_year"]=$start_arr_temp[1];
   $_POST["start_month"]=$start_arr_temp[2];
   $_POST["start_day"]=$start_arr_temp[3];

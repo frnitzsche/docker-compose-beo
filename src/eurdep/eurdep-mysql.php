@@ -132,7 +132,7 @@ class send_mail
           $ret=false;
           fputs($fp,$message."\r\n");
           $data=fgets($fp,1024);
-          ereg("^([0-9]+).(.*)$",$data,&$mass);
+          preg_match("/^([0-9]+).(.*)$/",$data,&$mass);
           $lastmessage=$data;
           if ($mass[1] == $answer) {$ret=true;}
           return $ret;

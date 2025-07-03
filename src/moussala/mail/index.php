@@ -17,7 +17,7 @@ function get_valid_files()
 	
         while ($file=readdir($dp_1))
  	   {
-	     if (ereg("([0123456789]{2})\.([0123456789]{2})\.([0123456789]{2}).*",$file,$temp_arr_1)) 
+	     if (preg_match("/([0123456789]{2})\.([0123456789]{2})\.([0123456789]{2}).*/",$file,$temp_arr_1)) 
 		   {
 	         $harwell_arr[$temp_arr_1[1].$temp_arr_1[2].$temp_arr_1[3]]=$temp_arr_1[1].$temp_arr_1[2].$temp_arr_1[3];
 		   }
@@ -25,7 +25,7 @@ function get_valid_files()
 
 	while ($file=readdir($dp_2))
 	   {
-	     if (ereg("([0123456789]{2})([0123456789]{2})([0123456789]{2})[0123456789]{2}\.CSV",$file,$temp_arr_2)) 
+	     if (preg_match("/([0123456789]{2})([0123456789]{2})([0123456789]{2})[0123456789]{2}\.CSV/",$file,$temp_arr_2)) 
 		   {
 	        $meteo_arr[$temp_arr_2[1].$temp_arr_2[2].$temp_arr_2[3]]=$temp_arr_2[1].$temp_arr_2[2].$temp_arr_2[3];
 		   }
@@ -53,7 +53,7 @@ function get_min_value($data)
 
    function normalize_time($time)
       {
-	    ereg("([01234567890]{1,2})\:([0123456789]{1,2})\:([0123456789]{1,2})",$time,$temp_arr);
+	    preg_match("/([01234567890]{1,2})\:([0123456789]{1,2})\:([0123456789]{1,2})/",$time,$temp_arr);
 	    if (strlen($temp_arr[1])==1) {$temp_arr[1]="0".$temp_arr[1];}
 	    if (strlen($temp_arr[2])==1) {$temp_arr[2]="0".$temp_arr[2];}
 	    if (strlen($temp_arr[3])==1) {$temp_arr[3]="0".$temp_arr[3];}
@@ -63,7 +63,7 @@ function get_min_value($data)
    
    function format_date($date)
       {
-	    ereg("([01234567890]{1,2})([0123456789]{1,2})([0123456789]{2,4})",$date,$temp_arr);
+	    preg_match("/([01234567890]{1,2})([0123456789]{1,2})([0123456789]{2,4})/",$date,$temp_arr);
 	    if (strlen($temp_arr[1])==1) {$temp_arr[1]="0".$temp_arr[1];}
 	    if (strlen($temp_arr[2])==1) {$temp_arr[2]="0".$temp_arr[2];}
 		$rezult=$temp_arr[1].".".$temp_arr[2].".".$temp_arr[3];
@@ -114,7 +114,7 @@ function get_meteo_data($date)
    
     function rearrange_date($date)
       {
-	    ereg("([01234567890]{1,2})\.([0123456789]{1,2})\.([0123456789]{2,4})",$date,$temp_arr);
+	    preg_match("/([01234567890]{1,2})\.([0123456789]{1,2})\.([0123456789]{2,4})/",$date,$temp_arr);
 	    if (strlen($temp_arr[1])==1) {$temp_arr[1]="0".$temp_arr[1];}
 	    if (strlen($temp_arr[2])==1) {$temp_arr[2]="0".$temp_arr[2];}
 		$rezult=$temp_arr[3]."-".$temp_arr[2]."-".$temp_arr[1];
@@ -220,7 +220,7 @@ function dialogue($message,$answer)
    $ret=false;
    fputs($fp,$message."\r\n");
    $data=fgets($fp,1024);
-   ereg("^([0-9]+).(.*)$",$data,&$mass);
+   preg_match("/^([0-9]+).(.*)$/",$data,&$mass);
    $lastmessage=$data;
    if ($mass[1] == $answer) {$ret=true;}
    return $ret;
@@ -313,8 +313,8 @@ $meteo=get_meteo_data($_POST["date"]);
 
 if (!$harwell && !$meteo) 
    {
-     echo("<font color=red size=5>Възникна грешка! <br> Няма данни нито за Harwell, нито за Vaisala</font>");
-	 echo("<a href=".$_SERVER["PHP_SELF"]."><br>Назад</a>");
+     echo("<font color=red size=5>пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ! <br> пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅ Harwell, пїЅпїЅпїЅпїЅ пїЅпїЅ Vaisala</font>");
+	 echo("<a href=".$_SERVER["PHP_SELF"]."><br>пїЅпїЅпїЅпїЅпїЅ</a>");
 	 exit;
    }
 
@@ -394,13 +394,13 @@ $main_sample="\BEGIN_EURDEP;
       $success=$try->send();
       if ($success) 
         {
-         echo("Писмото е успошно изпратено до: <b>$try->to</b>");
-         echo("<a href=".$_SERVER["PHP_SELF"]."><br>Изпрати още</a>");
+         echo("пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ: <b>$try->to</b>");
+         echo("<a href=".$_SERVER["PHP_SELF"]."><br>пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ</a>");
         }
       else
         {
-         echo("Възникна грешка при изпраштането ма писмото до: <b>$try->to</b>");
-         echo("<a href=".$_SERVER["PHP_SELF"]."><br>Изпрати още</a>");
+         echo("пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ: <b>$try->to</b>");
+         echo("<a href=".$_SERVER["PHP_SELF"]."><br>пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ</a>");
         }
      }
    else
@@ -410,12 +410,12 @@ $main_sample="\BEGIN_EURDEP;
             <table border=0 cellpadding=5><tr><td>
             <form action=".$_SERVER["PHP_SELF"]." method=post enctype=multipart/form-data>
             <input type=hidden name=date value=".$_POST["date"].">
-            <input type=submit name=send value=изпрати>
+            <input type=submit name=send value=пїЅпїЅпїЅпїЅпїЅпїЅпїЅ>
             </form>
             </td>
             <td>
             <form action=".$_SERVER["PHP_SELF"]." method=post>
-            <input type=submit name=back value=назад>
+            <input type=submit name=back value=пїЅпїЅпїЅпїЅпїЅ>
             </form>
             </td></tr></table>
            ");
@@ -452,7 +452,7 @@ $main_sample="\BEGIN_EURDEP;
 			      }
 			   ?>
 	           </select>
-			   <input type=submit value=Прегледай>
+			   <input type=submit value=пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ>
 			   </form>
 		   </td>
 		 </tr>
