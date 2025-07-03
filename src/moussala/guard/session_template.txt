@@ -1,0 +1,6 @@
+<?php 
+
+#################  This is session template  ####################
+require("e:/www/guard/index.php");
+
+?>

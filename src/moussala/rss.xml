@@ -1,0 +1,64 @@
+<?php
+
+$host="localhost";
+$username="wap";
+$password="wap";
+$database="moussala";
+
+$link=mysql_connect($host,$username,$password);
+if (!$link) {
+   error("No connection to the $host ",$mysql_error_message);
+}
+$OK=mysql_select_db("moussala",$link);
+if (!$OK) {
+   error("Can not select database $database ",$mysql_error_message);
+}
+
+
+$query="SELECT data from temperature order by timestamp desc limit 1";
+$result=mysql_query($query,$link);
+if (!isset($result) || !$result || mysql_num_rows($result) != 1) {
+   error("query- $query - didn't broght expected the result");
+}
+$temperature=mysql_fetch_array($result);
+
+
+$query="SELECT data from pressure order by timestamp desc limit 1";
+$result=mysql_query($query,$link);
+if (!isset($result) || !$result || mysql_num_rows($result) != 1) {
+   error("query- $query - didn't broght expected the result");
+}
+$pressure=mysql_fetch_array($result);
+
+
+?>
+
+
+<?xml version="1.0" encoding="windows-1251" ?> <rss version="0.91"><channel>  
+<title>Live data from Moussla</title><description/> <link>http://beo-db.inrne.bas.bg/moussala/</link>
+
+<item>
+<title>temperature is -12 deg/C </title>
+  <description>Temperature from peak Moussala</description>
+  <link>http://beo-db.inrne.bas.bg/moussala</link>
+</item>
+
+<item>
+<title>Pressure is 700 hPa</title>
+  <description>Pressure from peak Moussala</description>
+  <link>http://beo-db.inrne.bas.bg/moussala</link>
+</item>
+
+<item>
+<title>Wind Velocity 10 m/s</title>
+  <description>Wind Velocity from peak Moussala</description>
+  <link>http://beo-db.inrne.bas.bg/moussala</link>
+</item>
+
+<item>
+<title>Wind Direction is 20 deg</title>
+  <description>Wind Direction from peak Moussala</description>
+  <link>http://beo-db.inrne.bas.bg/moussala</link>
+</item>
+
+</channel></rss>

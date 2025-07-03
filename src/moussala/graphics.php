@@ -1,0 +1,1415 @@
+<?php
+
+header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");
+header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
+header("Cache-Control: no-store, no-cache, must-revalidate");
+header("Pragma: no-cache");
+header("Content-type: image/png");
+
+set_time_limit(1800);
+#########################   including settings file  #########################
+include("settings.php");
+####################################################################
+ini_set("memory_limit","300M");
+$db_server="localhost";
+$db_user="php";
+$db_password="php";
+$error_log_location="./vaisala.log";
+$database="moussala";
+
+
+
+function get_Y_lines($min,$max)
+   {
+    if ($min > $max)
+   	   {
+   	     $min_old=$min;
+   	     $min=$max;
+   	     $max=$min_old;
+   	    }
+   	elseif ($min==$max)
+   	    {
+   	       return FALSE;
+   	    }
+   	$difference=$max-$min;
+   	$order=0;
+    if ($difference >= 10)
+       {
+        while (TRUE)
+           {
+            if ($difference < 10)
+           	 {
+           	  $step=number_format($difference,0);
+
+           	  if ($step==6)
+           	      {
+           	       	$step=5;
+           	      }
+           	  if ($step==8 || $step==9 || $step==7)
+           	      {
+           	        $step=10;
+                    }
+
+           	  $step=$step*pow(10,$order-1);
+           	  break;
+           	 }
+           else
+           	 {
+           	    $difference/=10;
+           	    $order++;
+           	 }
+           }
+       }
+    else
+       {
+       	$difference/=10;
+       	while (TRUE)
+       	   {
+       	    if ($difference > 1)
+       	   	 {
+       	   	   $step=number_format($difference,0);
+       	   	   if ($step==6)
+       	   	   	 {
+       	   	   	   $step=5;
+       	   	   	 }
+       	   	   if ($step==8 || $step==9 || $step==7)
+       	   	   	 {
+       	   	   	   $step=10;
+       	   	         }
+       	   	   $step=$step/pow(10,$order);
+                   break;
+       	   	 }
+       	   else
+       	   	 {
+       	   	   $difference*=10;
+       	   	   $order++;
+       	   	 }
+       	   }
+        }
+
+    $i=0;
+    $current=0;
+    if ($min==0 || ($max>0 && $min<0))
+       {
+        $arr_minus[0]=0;
+       }
+    if ($max==0)
+       {
+        $arr_plus[0]=0;
+       }
+
+    while (TRUE)
+       {
+     	 $current-=$step;
+    	 if ($current > $min)
+   	       {
+   	    	 if ($current < $max)
+   	   	       {
+   	             $i++;
+                 $arr_minus[$i]=$current;
+               }
+   	       }
+     	else
+   	       {
+   	    	 break;
+   	       }
+        }
+
+    $i=0;
+    $current=0;
+
+    while (TRUE)
+       {
+         $current+=$step;
+    	 if ($current < $max)
+   	       {
+   	    	 if ($current > $min)
+   	   	       {
+   	             $i++;
+                 $arr_plus[$i]=$current;
+                }
+   	        }
+      	 else
+   	        {
+   	    	  break;
+   	         }
+         }
+    if (isset($arr_minus))
+      {
+    	sort($arr_minus);
+    	if (isset($arr_plus))
+   	      {
+   	        $result_arr=array_merge($arr_minus,$arr_plus);
+   	      }
+     	else
+   	      {
+   	    	$result_arr=$arr_minus;
+   	      }
+      }
+    else
+      {
+     	$result_arr=$arr_plus;
+      }
+
+    $decimals=0;
+	$temp=0;
+    foreach($result_arr as $key=>$value)
+	   {
+	     if (eregi("[0123456789]*\.([0123456789]*)",$value,$temp_arr))
+		    {
+			  $temp=strlen($temp_arr[1]);
+			}
+	     if ($temp > $decimals)
+		    {
+			  $decimals=$temp;
+			}
+	   }
+	   if ($_GET["device"]=="vaisala_pressure")
+	      {
+	         $decimals=1;
+	      }
+    foreach($result_arr as $key=>$value)
+	   {
+	     $result_arr[$key]=number_format($value,$decimals,"."," ");
+	   }
+
+    return $result_arr;
+   }
+
+function get_meteo_data($date)
+   {
+    global $root_location;
+    $meteo_directory="meteo/meteodata/";
+
+	$lines_arr_1=Array();
+    $lines_arr_2=Array();
+	for ($i=0;$i<24;$i++)
+	   {
+	     if (strlen($i)==1) {$i="0".$i;}
+	     if ($OK1=@file($root_location.$meteo_directory.$date.$i.".CSV"))
+		    {
+			 $lines_arr_2=array_merge($lines_arr_2,$OK1);
+			}
+
+         if ($OK2=@file($root_location.$meteo_directory.get_previous_day($date).$i.".CSV"))
+		    {
+			 $lines_arr_1=array_merge($lines_arr_1,$OK2);
+			}
+       }
+	if (!$lines_arr_1 && !$lines_arr_2) {return FALSE;}
+    $lines_arr_all=array_merge($lines_arr_1,$lines_arr_2);
+
+    $count_lines_arr=count($lines_arr_all);
+    $today=date("Y-m-d",strtotime($date));
+    for ($i=2;$i<$count_lines_arr;$i++)
+      {
+        eregi("([^\,]*)\,([^\,]*)\,([^\,]*)\,([^\,]*)\,([^\,]*)\,([^\,]*)\,[^\,]*\,([^\,]*)\,([^\,]*)",$lines_arr_all[$i],$raw_data);
+        $rearranged_date=rearrange_date($raw_data[1]);
+        if ($rearranged_date==$today)
+          {
+            if ($raw_data[3] != "")
+              {
+               $unix_time=strtotime($date." ".$raw_data[2],0);
+               $data["temperature"][$unix_time]=$raw_data[3];
+               $data["humidity"][$unix_time]=$raw_data[4];
+               $data["pressure"][$unix_time]=$raw_data[5];
+               $data["precipitations"][$unix_time]=$raw_data[6];
+               $data["velocity"][$unix_time]=$raw_data[7];
+               $data["direction"][$unix_time]=$raw_data[8];
+
+              }
+          }
+      }
+     if (isset($data)) {
+
+
+	   return $data;
+    }
+    else {
+      return false;
+    }
+    }
+function get_harwell_data($date,$precision=1)
+   {
+     global $root_location;
+	 $harwell_directory="cern/harwell/";
+
+	 $previous_day=get_previous_day($date);
+	 ereg("([01234567890]{2})([0123456789]{2})([0123456789]{2})",$previous_day,$temp_arr_1);
+	 $file_1=$temp_arr_1[1].".".$temp_arr_1[2].".".$temp_arr_1[3]."..txt";
+	 ereg("([01234567890]{2})([0123456789]{2})([0123456789]{2})",$date,$temp_arr_2);
+	 $file_2=$temp_arr_2[1].".".$temp_arr_2[2].".".$temp_arr_2[3]."..txt";
+	 $lines_arr_1=@file($root_location.$harwell_directory.$file_1);
+	 $lines_arr_2=@file($root_location.$harwell_directory.$file_2);
+     if (!$lines_arr_1 && !$lines_arr_2) {return FALSE;}
+     $lines_arr_1_size=count($lines_arr_1);
+	 $temp_arr[0]=-1;
+	 $go=false;
+
+     for ($i=0;$i<$lines_arr_1_size;$i++)
+       {
+     	$ok=eregi("([0123456789]{1,})[ \t]{1,}([0123456789]{1,})[\t ]{1,}([0123456789]{1,}):([0123456789]{1,})",$lines_arr_1[$i],$raw_data);
+		if ($ok)
+		   {
+		     if (strlen($raw_data[3])==1) {$raw_data[3]="0".$raw_data[3];}
+             if (strlen($raw_data[4])==1) {$raw_data[4]="0".$raw_data[4];}
+             $temp_arr[$i]=$raw_data[3].":".$raw_data[4];
+			 if (($temp_arr[$i]<$temp_arr[$i-1]) || $go)
+			    {
+				  $go=true;
+				  $arr_1["neutron"][$temp_arr[$i]]=$raw_data[1];
+				  $arr_1["gamma"][$temp_arr[$i]]=$raw_data[2];
+				}
+		   }
+       }
+
+	 $lines_arr_2_size=count($lines_arr_2);
+	 $temp_arr[0]=-1;
+     for ($i=0;$i<$lines_arr_2_size;$i++)
+       {
+     	$ok=eregi("([0123456789]{1,})[ \t]{1,}([0123456789]{1,})[\t ]{1,}([0123456789]{1,}):([0123456789]{1,})",$lines_arr_2[$i],$raw_data);
+		if ($ok)
+		   {
+		     if (strlen($raw_data[3])==1) {$raw_data[3]="0".$raw_data[3];}
+             if (strlen($raw_data[4])==1) {$raw_data[4]="0".$raw_data[4];}
+             $temp_arr[$i]=$raw_data[3].":".$raw_data[4];
+			 if (($temp_arr[$i]>$temp_arr[$i-1]))
+			    {
+				  $arr_2["neutron"][$temp_arr[$i]]=$raw_data[1];
+				  $arr_2["gamma"][$temp_arr[$i]]=$raw_data[2];
+				}
+		   }
+       }
+
+	 if (isset($arr_1["neutron"]) && isset($arr_2["neutron"]))
+	    {
+         $arr_all["neutrons"]=array_merge($arr_1["neutron"],$arr_2["neutron"]);
+         foreach ($arr_all["neutrons"] as $key=>$value)
+	       {
+		    $unix_time=strtotime($date." ".$key);
+		    $final_temp_arr["neutrons"][$unix_time]=$value;
+		   }
+		}
+     elseif (isset($arr_1["neutron"]))
+	    {
+		 $arr_all["neutrons"]=$arr_1["neutron"];
+         foreach ($arr_all["neutrons"] as $key=>$value)
+	       {
+		    $unix_time=strtotime($date." ".$key);
+		    $final_temp_arr["neutrons"][$unix_time]=$value;
+		   }
+		}
+	 elseif(isset($arr_2["neutron"]))
+	    {
+		 $arr_all["neutrons"]=$arr_2["neutron"];
+         foreach ($arr_all["neutrons"] as $key=>$value)
+	       {
+		    $unix_time=strtotime($date." ".$key);
+		    $final_temp_arr["neutrons"][$unix_time]=$value;
+		   }
+		}
+
+	 if (isset($arr_1["gamma"]) && isset($arr_2["gamma"]))
+	    {
+         $arr_all["gamma"]=array_merge($arr_1["gamma"],$arr_2["gamma"]);
+         foreach ($arr_all["gamma"] as $key=>$value)
+	       {
+		    $unix_time=strtotime($date." ".$key);
+		    $final_temp_arr["gamma"][$unix_time]=$value;
+		   }
+		}
+     elseif (isset($arr_1["gamma"]))
+	    {
+		 $arr_all["gamma"]=$arr_1["gamma"];
+         foreach ($arr_all["gamma"] as $key=>$value)
+	       {
+		    $unix_time=strtotime($date." ".$key);
+		    $final_temp_arr["gamma"][$unix_time]=$value;
+		   }
+		}
+	 elseif(isset($arr_2["gamma"]))
+	    {
+		 $arr_all["gamma"]=$arr_2["gamma"];
+         foreach ($arr_all["gamma"] as $key=>$value)
+	       {
+		    $unix_time=strtotime($date." ".$key);
+		    $final_temp_arr["gamma"][$unix_time]=$value;
+		   }
+		}
+     if (isset($final_temp_arr)) {
+	   $counter=1;
+	   $temp_neutrons=0;
+	   $temp_gamma=0;
+       foreach ($final_temp_arr["neutrons"] as $key=>$value) {
+	     $temp_neutrons+=$value;
+	     $temp_gamma+=$final_temp_arr["gamma"][$key];
+	     if (is_integer($counter/$precision)) {
+	       $final_arr["neutrons"][$key]=round($temp_neutrons/$precision,0);
+	       $final_arr["gamma"][$key]=round($temp_gamma/$precision,0);
+	       $temp_neutrons=0;
+	       $temp_gamma=0;
+	     }
+	     $counter++;
+	   }
+	}
+
+	 if (isset($final_arr))
+	    {
+		  return $final_arr;
+		}
+	 else
+        {
+		  return false;
+		}
+   }
+
+function get_uv_data($date)
+   {
+     global $root_location;
+	 $harwell_directory="meteo/uv/";
+	 $previous_day=get_previous_day($date);
+	 ereg("([01234567890]{2})([0123456789]{2})([0123456789]{2})",$previous_day,$temp_arr_1);
+	 $file_1=$temp_arr_1[1].".".$temp_arr_1[2].".".$temp_arr_1[3]."..txt";
+	 ereg("([01234567890]{2})([0123456789]{2})([0123456789]{2})",$date,$temp_arr_2);
+	 $file_2=$temp_arr_2[1].".".$temp_arr_2[2].".".$temp_arr_2[3]."..txt";
+	 $lines_arr_1=@file($root_location.$harwell_directory.$file_1);
+	 $lines_arr_2=@file($root_location.$harwell_directory.$file_2);
+     if (!$lines_arr_1 && !$lines_arr_2) {return FALSE;}
+     $lines_arr_1_size=count($lines_arr_1);
+	 $temp_arr[0]=-1;
+	 $go=false;
+     for ($i=0;$i<$lines_arr_1_size;$i++)
+       {
+     	$ok=eregi("([0123456789\.]{1,})[ \t ]{1,}([0123456789]{1,}):([0123456789]{1,})",$lines_arr_1[$i],$raw_data);
+		if ($ok)
+		   {
+		     if (strlen($raw_data[2])==1) {$raw_data[2]="0".$raw_data[2];}
+             if (strlen($raw_data[3])==1) {$raw_data[3]="0".$raw_data[3];}
+             $temp_arr[$i]=$raw_data[2].":".$raw_data[3];
+			 if (($temp_arr[$i]<@$temp_arr[$i-1]) || $go)
+			    {
+				  $go=true;
+				  $arr_1[$temp_arr[$i]]=$raw_data[1];
+				}
+		   }
+       }
+	 $lines_arr_2_size=count($lines_arr_2);
+	 $temp_arr[0]=-1;
+     for ($i=0;$i<$lines_arr_2_size;$i++)
+       {
+     	$ok=eregi("([0123456789\.]{1,})[ \t ]{1,}([0123456789]{1,}):([0123456789]{1,})",$lines_arr_2[$i],$raw_data);
+		if ($ok)
+		   {
+		     if (strlen($raw_data[2])==1) {$raw_data[2]="0".$raw_data[2];}
+             if (strlen($raw_data[3])==1) {$raw_data[3]="0".$raw_data[3];}
+             $temp_arr[$i]=$raw_data[2].":".$raw_data[3];
+			 if (($temp_arr[$i]>@$temp_arr[$i-1]))
+			    {
+				  $arr_2[$temp_arr[$i]]=$raw_data[1];
+				}
+		   }
+       }
+	 if (isset($arr_1) && isset($arr_2))
+	     {
+		   $arr_all=array_merge($arr_1,$arr_2);
+		 }
+	 elseif(isset($arr_1))
+         {
+		   $arr_all=$arr_1;
+		 }
+    elseif(isset($arr_2))
+         {
+		   $arr_all=$arr_2;
+		 }
+	 if (!isset($arr_all)) {return false;}
+     $size_of_arr_all=count($arr_all);
+     foreach ($arr_all as $key=>$value)
+	    {
+		  $unix_time=strtotime($date." ".$key);
+		  $final_arr[$unix_time]=$value;
+		}
+	 return $final_arr;
+   }
+
+function get_uv_b_data($date)
+   {
+
+   #####################  shuting down UV_Bfrom 2004-11-07  #######################
+   $temp_var_xxx =(int) $date;
+   if ($temp_var_xxx > 41106) {
+      return false;
+    }
+   ################################################################################
+
+     global $root_location;
+	 $harwell_directory="baliz02/Uv_b/";
+	 $previous_day=get_previous_day($date);
+	 ereg("([01234567890]{2})([0123456789]{2})([0123456789]{2})",$previous_day,$temp_arr_1);
+	 $file_1=$temp_arr_1[1].".".$temp_arr_1[2].".".$temp_arr_1[3]."..txt";
+	 ereg("([01234567890]{2})([0123456789]{2})([0123456789]{2})",$date,$temp_arr_2);
+	 $file_2=$temp_arr_2[1].".".$temp_arr_2[2].".".$temp_arr_2[3]."..txt";
+	 $lines_arr_1=@file($root_location.$harwell_directory.$file_1);
+	 $lines_arr_2=@file($root_location.$harwell_directory.$file_2);
+     if (!$lines_arr_1 && !$lines_arr_2) {return FALSE;}
+     $lines_arr_1_size=count($lines_arr_1);
+	 $temp_arr[0]=-1;
+	 $go=false;
+     for ($i=0;$i<$lines_arr_1_size;$i++)
+       {
+     	$ok=eregi("([0123456789\.]{1,})[ \t ]{1,}([0123456789]{1,}):([0123456789]{1,})",$lines_arr_1[$i],$raw_data);
+		if ($ok)
+		   {
+		     if (strlen($raw_data[2])==1) {$raw_data[2]="0".$raw_data[2];}
+             if (strlen($raw_data[3])==1) {$raw_data[3]="0".$raw_data[3];}
+             $temp_arr[$i]=$raw_data[2].":".$raw_data[3];
+			 if (($temp_arr[$i]<$temp_arr[$i-1]) || $go)
+			    {
+				  $go=true;
+				  $arr_1[$temp_arr[$i]]=$raw_data[1];
+				}
+		   }
+       }
+	 $lines_arr_2_size=count($lines_arr_2);
+	 $temp_arr[0]=-1;
+     for ($i=0;$i<$lines_arr_2_size;$i++)
+       {
+     	$ok=eregi("([0123456789\.]{1,})[ \t ]{1,}([0123456789]{1,}):([0123456789]{1,})",$lines_arr_2[$i],$raw_data);
+		if ($ok)
+		   {
+		     if (strlen($raw_data[2])==1) {$raw_data[2]="0".$raw_data[2];}
+             if (strlen($raw_data[3])==1) {$raw_data[3]="0".$raw_data[3];}
+             $temp_arr[$i]=$raw_data[2].":".$raw_data[3];
+			 if (($temp_arr[$i]>$temp_arr[$i-1]))
+			    {
+				  $arr_2[$temp_arr[$i]]=$raw_data[1];
+				}
+		   }
+       }
+	 if (isset($arr_1) && isset($arr_2))
+	     {
+		   $arr_all=array_merge($arr_1,$arr_2);
+		 }
+	 elseif(isset($arr_1))
+         {
+		   $arr_all=$arr_1;
+		 }
+    elseif(isset($arr_2))
+         {
+		   $arr_all=$arr_2;
+		 }
+
+	 if (!isset($arr_all)) {return false;}
+
+     $size_of_arr_all=count($arr_all);
+     foreach ($arr_all as $key=>$value)
+	    {
+		  $unix_time=strtotime($date." ".$key);
+		  $final_arr[$unix_time]=$value;
+		}
+	 return $final_arr;
+   }
+
+function get_environ_data($date)
+   {
+     global $root_location;
+	 $environ_directory="cern/environ/";
+
+	 ereg("([01234567890]{2})([0123456789]{2})([0123456789]{2})",$date,$temp_arr);
+     $file="ENVIR".$temp_arr[2].".PRN";
+     $file_location=$root_location.$environ_directory.$file;
+	 $fp=fopen($file_location,"r");
+     if (!$fp) {return FALSE;}
+     $environ_date=$temp_arr[3]."/".$temp_arr[2]."/20".$temp_arr[1];
+     $file_content=fread($fp,filesize($file_location));
+     $arr=explode("Date:  ",$file_content);
+	 $arr_size=count($arr);
+	 $raw_day="";
+	 for ($i=0;$i<$arr_size;$i++)
+	    {
+		  $ok=ereg("^([0123456789]{2}/[0123456789]{2}/[0123456789]{4})","$arr[$i]",$file_date);
+		  if ($ok)
+		     {
+	           if ($file_date[1]==$environ_date)
+			     {
+				   $raw_day.=$arr[$i];
+				 }
+			 }
+		}
+	 $lines_arr=explode("\r\n",$raw_day);
+	 $lines_arr_size=count($lines_arr);
+	 for ($i=0;$i<$lines_arr_size;$i++)
+	    {
+		  $ok=eregi("([0123456789:]{5})[ ]{1,}([0123456789\,]{5})[ ]{1,}([0123456789\,]{5})[ ]{1,}([0123456789\,]{5})",$lines_arr[$i],$result);
+		  if ($ok)
+		     {
+			   $result[1]=eregi_replace("24:","00:",$result[1]);
+			   $unix_time=strtotime($date." ".$result[1]);
+			   $final_arr["NO"][$unix_time]=(float) (ereg_replace(",",".",$result[2]));
+			   $final_arr["NO2"][$unix_time]=(float) (ereg_replace(",",".",$result[3]));
+			   $final_arr["O3"][$unix_time]=(float) (ereg_replace(",",".",$result[4]));
+			   ksort($final_arr["NO"]);
+			   ksort($final_arr["NO2"]);
+			   ksort($final_arr["O3"]);
+			 }
+		}
+	 if (isset($final_arr))
+	   {
+	    return $final_arr;
+	   }
+	 else
+	   {
+	     return false;
+	   }
+   }
+
+function rearrange_date($date)
+   {
+    ereg("([01234567890]{1,2})\.([0123456789]{1,2})\.([0123456789]{2,4})",$date,$temp_arr);
+    if (strlen($temp_arr[1])==1) {$temp_arr[1]="0".$temp_arr[1];}
+    if (strlen($temp_arr[2])==1) {$temp_arr[2]="0".$temp_arr[2];}
+    $rezult=$temp_arr[3]."-".$temp_arr[2]."-".$temp_arr[1];
+    return $rezult;
+   }
+
+function make_readable_date($date)
+   {
+   	$date=(string) $date;
+   	return date("Y-m-d",strtotime($date));
+   }
+
+
+function get_previous_day($today,$day=1) {
+  return date("ymd",strtotime($today." 13:00") - 86400*$day);
+}
+
+function get_next_day($today,$day=1) {
+  return date("ymd",strtotime($today)." 13:00" + 86400*$day);
+}
+
+function get_max_value($data)
+   {
+    arsort($data);
+    reset($data);
+    return current($data);
+   }
+
+function get_min_value($data)
+   {
+    asort($data);
+    reset($data);
+    return current($data);
+   }
+
+function get_max_key($data)
+   {
+    krsort($data);
+    reset($data);
+    return key($data);
+   }
+
+function get_min_key($data)
+   {
+    ksort($data);
+    reset($data);
+    return key($data);
+   }
+
+
+function number_of_days($start_day,$stop_day)
+   {
+     $timestamp_start_day=strtotime($start_day);
+	 $timestamp_stop_day=strtotime($stop_day);
+	 $timestamp_difference=$timestamp_stop_day-$timestamp_start_day;
+	 $result=$timestamp_difference/86400;
+	 return round($result);
+   }
+
+
+function number_of_hours($min_time,$max_time)
+   {
+     $timestamp_difference=$max_time-$min_time;
+	 $result=$timestamp_difference/3600;
+	 return $result;
+   }
+
+
+function get_starting_point($timestamp)
+   {
+     $hour=date("Ymd 00:00:00",$timestamp);
+	 $timestamp=strtotime($hour);
+	 $timestamp+=86400;
+     return $timestamp;
+   }
+
+function get_days_timestamps($min_time,$max_time)
+   {
+	 global $width,$digit_spacing,$first_date,$last_date;
+
+     $number_of_days=number_of_days($first_date,$last_date);
+	 $max_days_alowed=$width/$digit_spacing;
+     $day_factor=$number_of_days/$max_days_alowed;
+	 $day_factor=floor($day_factor);
+	 $counter=0;
+     for ($i=$first_date;$i<=$last_date;$i=$day_factor+get_next_day($i))
+	     {
+		   $days_array[$counter]=strtotime($i);
+		   if (ereg("0330$",$i)) {$days_array[$counter]+=3600;}
+		   $counter++;
+		 }
+	 return $days_array;
+   }
+
+
+function get_hours_timestamps($min_time,$max_time)
+   {
+	 global $width,$digit_spacing;
+     $number_of_hours=number_of_hours($min_time,$max_time);
+	 $max_hours_alowed=$width/$digit_spacing;
+     $hours_factor=$number_of_hours/$max_hours_alowed;
+	 $hours_factor=ceil($hours_factor);
+
+	 if ($hours_factor<24)
+	   {
+         switch ($hours_factor)
+		   {
+		     case 3 : $hours_factor=4;break;
+			 case 5 : $hours_factor=6; break;
+			 case 7 : $hours_factor=8; break;
+			 case 9 : $hours_factor=12; break;
+			 case 10 : $hours_factor=12; break;
+			 case 11 : $hours_factor=12; break;
+			 case 13 : $hours_factor=24; break;
+			 case 14 : $hours_factor=24; break;
+			 case 15 : $hours_factor=24; break;
+			 case 16 : $hours_factor=24; break;
+			 case 17 : $hours_factor=24; break;
+			 case 18 : $hours_factor=24; break;
+			 case 19 : $hours_factor=24; break;
+			 case 20 : $hours_factor=24; break;
+			 case 21 : $hours_factor=24; break;
+			 case 22 : $hours_factor=24; break;
+			 case 23 : $hours_factor=24; break;
+		    }
+		}
+	 else
+		{
+		  $hours_factor=24;
+		}
+
+	 $counter=0;
+	 $first_hour=get_starting_point($min_time);
+     for ($i=$first_hour;$i<=$max_time;$i+=$hours_factor*3600)
+	     {
+		   $hours_array[$counter]=$i;
+		   $counter++;
+		 }
+     for ($i=$first_hour;$i>=$min_time;$i-=$hours_factor*3600)
+	    {
+		  $hours_array[$counter]=$i;
+		  $counter++;
+		}
+	 return $hours_array;
+   }
+
+
+function draw($image,$data,$color,$pattern,$X_dimension,$Y_dimension,$device_name,$timeout,$max_value,$min_value,$make_chart=TRUE,$front_chart=false)
+   {
+    global $back_ground,$digit_spacing,$width,$first_date,$last_date,$space_between_bar,$minimal_bar_with,$dot_radius,$dot_radius_combined;
+   if (!is_array($data)) {
+   	show_error("No data is available");
+   	return false;}
+     if (count($data)==1)
+	   {
+	     show_error("No data is available for ".date("Y-m-d",key($data)));
+	     return false;
+	   }
+    $X_offset=60;
+    $Y_offset=50;
+    $width=ImageSX($image)-$X_offset;
+    $height=ImageSY($image)-$Y_offset;
+    $max_time=get_max_key($data);
+    $min_time=get_min_key($data);
+    $padding=(get_max_value($data)-get_min_value($data))*0.03;
+
+    if ($max_value == "auto")
+       {
+	$current_max_value=get_max_value($data);
+        $max_value=$current_max_value+$padding;
+       }
+
+    if ($min_value == "auto")
+       {
+	$current_min_value=get_min_value($data);
+        $min_value=$current_min_value-$padding*0.7;
+       }
+
+    if ($max_value==$min_value)
+       {
+	 $min_value=0;
+	 $max_value=($max_value+1)*1.1;
+       }
+
+     if ($max_value < $min_value)
+       {
+          $temp_value=$max_value;
+	  $max_value=$min_value;
+	  $min_value=$temp_value;
+       }
+    reset($data);
+    $X_factor=($width/($max_time-$min_time));
+    $Y_factor=(($height/($max_value-$min_value)));
+    $X_value_old=$X_factor*(key($data)-$min_time)+$X_offset;
+    $Y_value_old=($height - ($Y_factor*(current($data)-$min_value)))- 2;
+    $time_old=key($data);
+    $font_color=ImageColorAllocate($image,0,0,0);
+    $font_number=2;
+    $font_width=ImageFontWidth($font_number);
+    $Y_position=($height+9)-(ImageFontHeight($font_number)/2);
+	$digit_spacing=18;
+    $text_spacing=13;
+    $first_date=date("ymd",$min_time);
+	$last_date=date("ymd",$max_time);
+
+
+    if ($make_chart)
+      {
+       $grey=ImageColorAllocate($image,200,200,200);
+	   $dark_grey=ImageColorAllocate($image,170,170,170);
+       $black=ImageColorAllocate($image,0,0,0);
+	   $pale=ImageColorAllocate($image,100,100,100);
+	   $red=ImageColorAllocate($image,255,0,0);
+	   $light_pale=ImageColorAllocate($image,130,130,130);
+
+ //    ImageLine($image,$X_offset,0,$width+$X_offset,0,$red);
+ //    ImageLine($image,$width-1+$X_offset,0,$width-1+$X_offset,$height-1,$red);
+       $Y_lines=get_Y_lines($min_value,$max_value);
+
+        foreach($Y_lines as $key=>$value)
+          {
+		   $value_text=$value;
+		   $value=eregi_replace("[ ,]*","",$value);
+           $current_Y_position=$height - ($Y_factor*($value-$min_value));
+           ImageLine($image,1+$X_offset,$current_Y_position,$width-2+$X_offset,$current_Y_position,$grey);
+           $Y_number_position=$current_Y_position-(ImageFontHeight($font_number)/2);
+           $X_number_position=$X_offset-(strlen($value_text)*ImageFontWidth($font_number))-6;
+           ImageString($image,$font_number,$X_number_position,$Y_number_position+2,$value_text,$font_color);
+          }
+
+           $hours_array=get_hours_timestamps($min_time,$max_time);
+           $hours_array_count=count($hours_array);
+           for ($i=0;$i<$hours_array_count;$i++)
+		      {
+			    $seconds=$hours_array[$i]-$min_time;
+			    if ($seconds > 0)
+			      {
+			        $X_hours=($seconds*$X_factor+$X_offset);
+			        ImageLine($image,$X_hours,1,$X_hours,$height-2,$grey);
+			      }
+              }
+/*
+           $days_array=get_days_timestamps($min_time,$max_time);
+           $days_array_count=count($days_array);
+           for ($i=0;$i<$days_array_count;$i++)
+		      {
+			    $seconds=$days_array[$i]-$min_time;
+			    if ($seconds > 0)
+			      {
+			        $X_days=($seconds*$X_factor+$X_offset);
+			        ImageLine($image,$X_days,$height,$X_days,$height-7,$black);
+			      }
+              }
+*/
+       }
+    switch ($pattern)
+       {
+		case "barchart" :
+		    {
+               $common_space=$minimal_bar_with+$space_between_bar;
+               $number_of_bars=floor($width/$common_space);
+			   $data_count=count($data);
+			   while ($number_of_bars > $data_count) {
+			      $minimal_bar_with++;
+			      $common_space=$minimal_bar_with+$space_between_bar;
+                  $number_of_bars=floor($width/$common_space);
+			   }
+			      $bars_array=Array();
+				  for ( $i=0; $i<=$number_of_bars; $i++ )
+				     {
+					    $bars_array[$i][0]=0;
+					    $bars_array[$i][1]=0;
+					 }
+   				    foreach($data as $key=>$value) {
+				    $X_value=$X_factor*($key-$min_time);
+				    $bars_number=floor($X_value/$common_space);
+					$bars_array[$bars_number][1]++;
+					$bars_array[$bars_number][0]+=$value;
+				  }
+                  for ($i=0;$i<=$bars_number;$i++) {
+					 $bars_array[$i][0]=@($bars_array[$i][0]/$bars_array[$i][1]);
+					 $X_position=$X_offset+$i*$common_space;
+                     $Y_position=($height - ($Y_factor*($bars_array[$i][0]-$min_value))) - 2;
+					 if ($bars_array[$i][0]!="") {
+                     $polygon_arr= Array(
+                         0  => $X_position,                                 // x1
+                         1  => $height,                                      // y1
+                         2  => $X_position+$minimal_bar_with-1,   // x2
+                         3  => $height,                                      //y2
+                         4  => $X_position+$minimal_bar_with-1,   // x3
+                         5  => $Y_position,                                 // y3
+                         6  => $X_position,                                 // x4
+                         7  => $Y_position,                                 // y4
+                      );
+                     imagefilledpolygon($image,$polygon_arr,4,$color);
+				     }
+			      }
+             break;
+            }
+        case "lines" :
+            {
+             foreach($data as $key=>$value)
+                {
+                 $X_value=$X_factor*($key-$min_time)+$X_offset;
+                 $Y_value=($height - ($Y_factor*($value-$min_value))) - 2;
+                     $time_new=$key;
+                     if (($time_new - $time_old) < $timeout)
+                       {
+                        ImageLine($image,$X_value,$Y_value,$X_value_old,$Y_value_old,$color);
+                       }
+                    $X_value_old=$X_value;
+                    $Y_value_old=$Y_value;
+                    $time_old=$time_new;
+                }
+             break;
+            }
+        case "dots" :
+            {
+             foreach($data as $key=>$value)
+                {
+                 $X_value=$X_factor*($key-$min_time)+$X_offset+2;
+                 $Y_value=($height - ($Y_factor*($value-$min_value)))-3;
+				 $dots_coordinates = array(
+                    0  => $X_value-$dot_radius,     // x1
+                    1  => $Y_value-$dot_radius,     // y1
+                    2  => $X_value+$dot_radius,    // x2
+                    3  => $Y_value-$dot_radius,     // y2
+                    4  => $X_value+$dot_radius,    // x3
+                    5  => $Y_value+$dot_radius,    // y3
+                    6  => $X_value-$dot_radius,     // x4
+                    7  => $Y_value+$dot_radius,    // y4
+                  );
+				 imagefilledpolygon($image, $dots_coordinates, 4, $color );
+                }
+             break;
+            }
+        case "combined" :
+            {
+             foreach($data as $key=>$value)
+                {
+                 $X_value=$X_factor*($key-$min_time)+$X_offset+1;
+                 $Y_value=($height - ($Y_factor*($value-$min_value)))-3;
+				 $dots_coordinates = array(
+                    0  => $X_value-$dot_radius_combined,     // x1
+                    1  => $Y_value-$dot_radius_combined,     // y1
+                    2  => $X_value+$dot_radius_combined,    // x2
+                    3  => $Y_value-$dot_radius_combined,     // y2
+                    4  => $X_value+$dot_radius_combined,    // x3
+                    5  => $Y_value+$dot_radius_combined,    // y3
+                    6  => $X_value-$dot_radius_combined,     // x4
+                    7  => $Y_value+$dot_radius_combined,    // y4
+                  );
+				 imagefilledpolygon($image, $dots_coordinates, 4, $color );
+                     $time_new=$key;
+                     if (($time_new - $time_old) < $timeout)
+                       {
+                        ImageLine($image,$X_value,$Y_value,$X_value_old,$Y_value_old,$color);
+                       }
+                     $X_value_old=$X_value;
+                     $Y_value_old=$Y_value;
+                     $time_old=$time_new;
+                }
+             break;
+            }
+
+         case "dashed" :
+            {
+               foreach($data as $key=>$value)
+                {
+                 $X_value=$X_factor*($key-$min_time)+$X_offset;
+                 $Y_value=($height - ($Y_factor*($value-$min_value))) - 2;
+                 $time_new=$key;
+                 if (($time_new - $time_old) < $timeout)
+                    {
+                     ImageDashedLine($image,$X_value,$Y_value,$X_value_old,$Y_value_old,$color);
+                    }
+                 $X_value_old=$X_value;
+                 $Y_value_old=$Y_value;
+                 $time_old=$time_new;
+                }
+             break;
+            }
+       }
+
+	 if ($make_chart)
+       {
+	   if ($front_chart) {
+	     $grey=ImageColorAllocate($image,200,200,200);
+	     $dark_grey=ImageColorAllocate($image,170,170,170);
+         $black=ImageColorAllocate($image,0,0,0);
+	     $pale=ImageColorAllocate($image,100,100,100);
+
+         ImageLine($image,$X_offset,0,$width+$X_offset,0,$black);
+         ImageLine($image,$width-1+$X_offset,0,$width-1+$X_offset,$height-1,$black);
+         $Y_lines=get_Y_lines($min_value,$max_value);
+
+          foreach($Y_lines as $key=>$value)
+            {
+		     $value_text=$value;
+		     $value=eregi_replace("[ ,]*","",$value);
+             $current_Y_position=$height - ($Y_factor*($value-$min_value));
+             ImageLine($image,1+$X_offset,$current_Y_position,$width-2+$X_offset,$current_Y_position,$grey);
+             $Y_number_position=$current_Y_position-(ImageFontHeight($font_number)/2);
+             $X_number_position=$X_offset-(strlen($value_text)*ImageFontWidth($font_number))-6;
+             ImageString($image,$font_number,$X_number_position,$Y_number_position+2,$value_text,$font_color);
+            }
+
+             $hours_array=get_hours_timestamps($min_time,$max_time);
+             $hours_array_count=count($hours_array);
+             for ($i=0;$i<$hours_array_count;$i++)
+		        {
+			      $seconds=$hours_array[$i]-$min_time;
+			      if ($seconds > 0)
+			        {
+			          $X_hours=($seconds*$X_factor+$X_offset);
+			          ImageLine($image,$X_hours,1,$X_hours,$height-2,$grey);
+			        }
+                }
+
+             $days_array=get_days_timestamps($min_time,$max_time);
+             $days_array_count=count($days_array);
+             for ($i=0;$i<$days_array_count;$i++)
+		        {
+			      $seconds=$days_array[$i]-$min_time;
+			      if ($seconds > 0)
+			        {
+			          $X_days=($seconds*$X_factor+$X_offset);
+			          ImageLine($image,$X_days,1,$X_days,$height-2,$pale);
+			        }
+                }
+         }
+
+
+
+######################################################################
+           $days_occur=-1;
+           $days_array=get_days_timestamps($min_time,$max_time);
+           $days_array_count=count($days_array);
+           for ($i=0;$i<$days_array_count;$i++)
+		      {
+			    $days_occur++;
+			    $seconds=$days_array[$i]-$min_time;
+			    if ($seconds > 0)
+			      {
+			        $X_days=($seconds*$X_factor+$X_offset);
+			        ImageLine($image,$X_days,$height,$X_days,$height-5,$black);
+			      }
+              }
+
+        foreach($Y_lines as $key=>$value)
+          {
+		   $value_text=$value;
+		   $value=eregi_replace("[ ,]*","",$value);
+           $current_Y_position=$height - ($Y_factor*($value-$min_value));
+           ImageLine($image,1+$X_offset,$current_Y_position,4+$X_offset,$current_Y_position,$black);
+           $Y_number_position=$current_Y_position-(ImageFontHeight($font_number)/2);
+           $X_number_position=$X_offset-(strlen($value_text)*ImageFontWidth($font_number))-6;
+           ImageString($image,$font_number,$X_number_position,$Y_number_position+2,$value_text,$font_color);
+          }
+
+if ($days_occur) {
+   $X_dimension="Time [Days Hours]";
+}
+else {
+   $X_dimension="Time [Hours]";
+}
+#######################################################################
+
+	   $Y_fall=10;
+	   $coordinats=Array(
+	   0=>0,
+	   1=>$height+$Y_offset,
+	   2=>$width+$X_offset,
+	   3=>$height+$Y_offset,
+	   4=>$width+$X_offset,
+	   5=>$height,
+	   6=>$X_offset,
+	   7=>$height,
+	   8=>$X_offset,
+	   9=>$height+$Y_fall,
+	   10=>0,
+	   11=>$height+$Y_fall,
+	   );
+	   ImageLine($image,$X_offset,$height-1,$width-1+$X_offset,$height-1,$black);
+	   ImageLine($image,$X_offset,0,$X_offset,$height-1,$black);
+	   imagefilledpolygon($image, $coordinats, 6, $back_ground);
+
+
+        for ($i=0;$i<$days_array_count;$i++)
+		   {
+			 $seconds=$days_array[$i]-$min_time;
+			 if ($seconds > 0)
+			   {
+		         $days=date("d",$days_array[$i]);
+				 $days_width=ImageFontWidth($font_number)*strlen($days);
+			     $X_days=($seconds*$X_factor+$X_offset)-($days_width/2);
+			     Imagestring($image,$font_number,$X_days+1,$height+1,$days,$font_color);
+			   }
+           }
+
+
+
+        $hours_array=array_diff($hours_array,$days_array);
+        foreach ($hours_array as $key=>$value)
+		   {
+			 $seconds=$value-$min_time;
+			 if ($seconds > 0)
+			   {
+		         $hours=date("H",$value);
+				 if ($hours=="00") {$hours="";}
+				 $little_font=$font_number-1;
+				 $hours_width=ImageFontWidth($little_font)*strlen($hours);
+			     $X_hours=($seconds*$X_factor+$X_offset)-($hours_width/2);
+				 if ($X_hours < $X_offset+$width-($hours_width)) {
+			     Imagestring($image,$little_font,$X_hours+1,$height+4,$hours,$dark_grey);
+				 }
+
+			   }
+           }
+
+
+
+
+
+
+	   $device_name_x_position=$text_spacing;
+       $device_name_y_position=$height+$Y_offset-ImageFontHeight($font_number)-$text_spacing;
+	   if (eregi("[0123456789]",$device_name))
+	      {
+		    eregi("([^0123456789]*)([0123456789])(.*)",$device_name,$split);
+		    ImageString($image,$font_number, $device_name_x_position, $device_name_y_position,$split[1],$font_color);
+		    ImageString($image,$font_number-1,$device_name_x_position+ImageFontWidth($font_number)*strlen($split[1]), $device_name_y_position+(ImageFontHeight($font_number)-ImageFontHeight($font_number-1)),$split[2],$font_color);
+		    ImageString($image,$font_number, $device_name_x_position+(ImageFontWidth($font_number)*strlen($split[1])+ImageFontWidth($font_number-1)*strlen($split[2])), $device_name_y_position,$split[3],$font_color);
+		  }
+		else
+		  {
+		    ImageString($image,$font_number,$device_name_x_position,$device_name_y_position,$device_name,$font_color);
+		  }
+
+
+	   if ($first_date==$last_date)
+	      {
+		    $chart_date=make_readable_date($first_date);
+		  }
+	   else
+	      {
+		    $chart_date=make_readable_date($first_date)." / ".make_readable_date($last_date);
+		  }
+
+	   $device_name_size=$text_spacing+(strlen($device_name)*$font_width);
+	   $free_space=$width+$X_offset-(2*$text_spacing+strlen($device_name)*$font_width+strlen($X_dimension)*$font_width);
+	   $middle_of_free_space=$device_name_size+($free_space/2);
+       $date_x_position=$middle_of_free_space-(strlen($chart_date)*$font_width)/2;
+       $date_y_position=$height+$Y_offset-ImageFontHeight($font_number)-$text_spacing;
+       ImageString($image,$font_number,$date_x_position,$date_y_position,$chart_date,$font_color);
+
+       $Y_x_dimension_position=(ImageFontHeight($font_number)-8);
+       $Y_y_dimension_position=(strlen($Y_dimension)*ImageFontWidth($font_number))+10;
+	   if (eregi("[0123456789]",$Y_dimension))
+	      {
+		    eregi("([^0123456789]*)([0123456789])(.*)",$Y_dimension,$split);
+		    ImageStringUp($image,$font_number, $Y_x_dimension_position, $Y_y_dimension_position,$split[1],$font_color);
+			if (eregi("m2",$Y_dimension))
+			   {
+		         ImageStringUp($image,$font_number-1, $Y_x_dimension_position, $Y_y_dimension_position-ImageFontWidth($font_number)*strlen($split[1]),$split[2],$font_color);
+			   }
+			else
+			   {
+			     ImageStringUp($image,$font_number-1, $Y_x_dimension_position+(ImageFontHeight($font_number)-ImageFontHeight($font_number-1)), $Y_y_dimension_position-ImageFontWidth($font_number)*strlen($split[1]),$split[2],$font_color);
+			   }
+		    ImageStringUp($image,$font_number, $Y_x_dimension_position, $Y_y_dimension_position-(ImageFontWidth($font_number)*strlen($split[1])+ImageFontWidth($font_number-1)*strlen($split[2])),$split[3],$font_color);
+		  }
+		else
+		  {
+		    ImageStringUp($image,$font_number, $Y_x_dimension_position, $Y_y_dimension_position,$Y_dimension,$font_color);
+		  }
+
+	   $X_x_dimension_position=$X_offset+$width-(strlen($X_dimension)*ImageFontWidth($font_number))-$text_spacing;
+       $X_y_dimension_position=$Y_offset+$height-(ImageFontHeight($font_number))-$text_spacing;
+	   if ($days_occur) {
+	      ImageString($image,$font_number, $X_x_dimension_position, $X_y_dimension_position,"Time [Days ",$black);
+		  $new_X_x_dimension_position=$X_x_dimension_position+strlen("Time [Days ")*$font_width;
+		  ImageString($image,$font_number, $new_X_x_dimension_position, $X_y_dimension_position,"Hours",$light_pale);
+		  $new_X_x_dimension_position_final=$new_X_x_dimension_position+strlen("Hours")*$font_width;
+		  ImageString($image,$font_number, $new_X_x_dimension_position_final, $X_y_dimension_position,"]",$black);
+	   }
+	   else {
+	      ImageString($image,$font_number, $X_x_dimension_position, $X_y_dimension_position,"Time [Hours]",$font_color);
+	   }
+###xxx
+
+
+       $green=ImageColorAllocate($image,0,255,0);
+       ImageLine($image,0,0,0,$height+$Y_offset,$black);
+       ImageLine($image,0,0,$width+$X_offset,0,$black);
+       ImageLine($image,$width+$X_offset-1,0,$width+$X_offset-1,$height+$Y_offset,$black);
+       ImageLine($image,0,$height+$Y_offset-1,$width+$X_offset,$height+$Y_offset-1,$black);
+     }
+   }
+
+function show_error($text="Error")
+   {
+    $font_number=5;
+    $image=imagecreatefrompng("error.png");
+    if (!$image) {
+      $image=ImageCreate(500,300);
+	  $back_ground=ImageColorAllocate($image,233,233,233);
+	}
+	$width=ImageSX($image);
+    $color=ImageColorAllocate($image,255,0,0);
+	$X=($width/2)-((strlen($text)*ImageFontWidth($font_number))/2);
+    ImageString($image,$font_number,$X,145,$text,$color);
+    imagepng($image);
+    ImageDestroy($image);
+    exit;
+   }
+
+function error($message,$error_var=""){
+   global $error_log_location;
+   $error_message="\r\n".date("m.d.Y H:i:s")." - ".$message."   ".$error_var;
+   error_log($error_message,3,$error_log_location);
+}
+
+function get_data($table,$field,$start_date,$stop_date){
+   global $db_server,$db_user,$db_password,$database;
+   $start_timestamp="20".$start_date."000000";
+   $stop_timestamp="20".$stop_date."235959";
+   $link=mysql_pconnect($db_server,$db_user,$db_password);
+   if (!$link){
+      error("Can't connect to database '".$database."' on '".$db_server."' using username '".$db_user."' and passord '".$db_password."'",$php_errormsg);
+      return false;
+   }
+
+   $selection=mysql_select_db($database,$link);
+   if (!$selection) {
+      error("mysql_select-db func failed selecting $database".mysql_error($link));
+      return false;
+   }
+
+   $query="SELECT unix_timestamp(timestamp),$field FROM $table WHERE timestamp >= $start_timestamp and timestamp <= $stop_timestamp AND $field nOT LIKE 'Null' ORDER BY timestamp;";
+   $result=mysql_query($query,$link);
+   if (!$result) {
+      return false;
+   }
+
+   while ($line = mysql_fetch_array($result, MYSQL_NUM)) {   	
+      $data_arr[$line[0]]=$line[1];
+   }
+   if (isset($data_arr) && $data_arr) {
+      return $data_arr;
+   }else{
+      return false;
+   }
+}
+
+
+function render_table($table,$field,$png,$name,$ordinate,$threshold,$enable=true){
+   global $width,$height,$type,$max_value,$min_value;
+   $image=imagecreatefrompng($png);
+   if (!$image || ($width>500 || $height>300)) {$image=ImageCreate($width,$height);}
+   $back_ground=ImageColorAllocate($image,233,233,233);
+   $color=ImageColorAllocate($image,255,0,0);
+   $data=get_data($table,$field,$_GET["start_date"],$_GET["stop_date"]);
+   if (!$data || count($data)==0 || !$enable) {
+      if ($_GET["start_date"]==$_GET["stop_date"]) {
+         show_error("No data is available for ".make_readable_date($_GET["start_date"]));
+      }else {
+         show_error("No data is available for ".make_readable_date($_GET["start_date"])." / ".make_readable_date($_GET["stop_date"]));
+      }
+   }
+   draw($image,$data,$color,$type,"Time [Hours]","$ordinate","$name",$threshold,$max_value,$min_value);
+   imagepng($image);
+   ImageDestroy($image);
+   return;
+}
+
+############################################
+#                                          #
+#      	End of function definitions        #
+#                                          #
+############################################
+
+if (isset($_GET["device"]) && isset($_GET["start_date"]))
+   {
+     if (!isset($_GET["stop_date"]))
+	    {
+		  $_GET["stop_date"]=$_GET["start_date"];
+		}
+     if ($_GET["start_date"] > $_GET["stop_date"])
+	    {
+		  $_GET["stop_date"]=$_GET["start_date"];
+    	}
+     if ((isset($_GET["width"]) && $_GET["width"]>500))
+       {
+        $width=$_GET["width"];
+       }
+     else
+       {
+        $width=500;
+       }
+
+	 if ((isset($_GET["height"]) && $_GET["height"]>300))
+	    {
+		  $height=$_GET["height"];
+		}
+	 else
+	    {
+		  $height=300;
+		}
+
+    if (!($_GET["device"]=="vaisala_temperature" || $_GET["device"]=="vaisala_pressure" || $_GET["device"]=="vaisala_wind_velocity" || $_GET["device"]=="vaisala_wind_direction" || $_GET["device"]=="harwell_neutron" || $_GET["device"]=="harwell_gamma" || $_GET["device"]=="uv" || $_GET["device"]=="environ_no" || $_GET["device"]=="environ_no2" || $_GET["device"]=="environ_o3" || $_GET["device"]=="uv-b" || $_GET["device"]=="vaisala_precipitations" || $_GET["device"]=="liulin_flux" || $_GET["device"]=="liulin_dose" || $_GET["device"]=="vaisala_humidity"))
+       {
+       	show_error("No valid device specified");
+       }
+    elseif (!ereg("^[0123456789]{6}$",$_GET["start_date"]) || !ereg("^[0123456789]{6}$",$_GET["stop_date"]))
+       {
+       	show_error("No valid date specified");
+       }
+
+   if (isset($_GET["type"]) && ($_GET["type"]=="lines"  || $_GET["type"]=="dots"  || $_GET["type"]=="combined" || $_GET["type"]=="dashed" || $_GET["type"]=="barchart"))
+      {
+       $type=$_GET["type"];
+      }
+   else
+      {
+       $type="lines";
+      }
+
+   if (isset($_GET["max_value"]))
+      {
+       $max_value=$_GET["max_value"];
+      }
+   else
+      {
+       $max_value="auto";
+      }
+
+   if (isset($_GET["min_value"]))
+      {
+	   $min_value=$_GET["min_value"];
+	  }
+   else
+      {
+	    $min_value="auto";
+	  }
+
+###########################################################################
+#                                                                         #
+#                            Render_table                                 #
+#                                                                         #
+#  first argument is name of the table in $database in $db_server,        #
+#  second argument is name of the field in the afore mentioned table,     #
+#  third argument is name of the file for background,                     #
+#  forht argument is name of the grafic,                                  #
+#  fifth argument is name of vetical axis,                                #
+#  the vertical axis is always time,                                      #
+#  sixed argument is measurement interval is seconds                      #
+#                                                                         #
+###########################################################################
+
+switch ($_GET["device"]){
+   case "vaisala_temperature" :
+      {
+       render_table("temperature","data","sample_meteo.png","Vaisala - Temperature","Temperature [Deg C]",900);
+       break;
+      }
+   case "vaisala_pressure" :
+      {
+       render_table("pressure","data","sample_meteo.png","Vaisala - Pressure","Pressure [HPa]",900);
+       break;
+      }
+   case "vaisala_precipitations" :
+      {
+       render_table("precipitation","data","sample_meteo.png","Vaisala - Precipitations","Precipitations [mm]",900);
+       break;
+      }
+
+   case "vaisala_humidity" :
+      {
+       render_table("humidity","data","sample_meteo.png","Vaisala - Humidity","Humidity [%]",900);
+       break;
+      }
+   case "vaisala_wind_velocity" :
+      {
+       render_table("wind_velocity","data","sample_meteo.png","Vaisala - Wind Velocity","Wind Velocity [m/sec]",900);
+       break;
+      }
+   case "vaisala_wind_direction" :
+      {
+       render_table("wind_direction","data","sample_meteo.png","Vaisala - Wind Direction","Wind Direction [Deg]",900);
+       break;
+      }
+   case "harwell_neutron" :
+      {
+       render_table("neutrons","data","harwell_neutron.png","Harwell - Neutrons","Neutrons []",4000);
+       break;
+      }
+   case "harwell_gamma" :
+      {
+       render_table("gamma","data","harwell_gamma.png","Harwell - Gamma","Gamma dose rate []",4000);
+       break;
+      }
+   case "uv" :
+      {
+       render_table("uv_ab","data","uv.png","UV-AB","UV-AB [W/m2]",300);
+       break;
+      }
+   case "uv-b" :
+      {
+       render_table("uv_b","data","uv.png","UV-B","UV-B [W/m2]",60000);
+       break;
+      }
+   case "environ_no" :
+      {
+       render_table("no","data","no.png","NO","NO [ppb]",3600);
+       break;
+      }
+   case "environ_no2" :
+      {
+       render_table("no2","data","no2.png","NO2","NO2 [ppb]",3600);
+       break;
+      }
+   case "environ_o3" :
+      {
+       render_table("o3","data","o3.png","O3","O3 [ppb]",3600);
+       break;
+      }
+   case "liulin_dose" :
+      {
+       render_table("liulin","dose","liulin.png","Liulin - LET Spectrometer","Gamma Dose [uGy/h]",3600);
+       break;
+      }
+   case "liulin_flux" :
+      {
+       render_table("liulin","flux","liulin.png","Liulin - LET Spectrometer","Gamma Flux [Particle/(s.cm2)]",3600);
+       break;
+      }      
+   default :
+      {
+       show_error("No valid device specified");
+      }
+}
+   }
+else
+   {
+     show_error("No start date and device specified");
+   }
+?>
