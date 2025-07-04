@@ -11,14 +11,12 @@ set_time_limit(1800);
 include("settings.php");
 ####################################################################
 ini_set("memory_limit","300M");
-$db_server="docker-compose-wordpress_db_1";
-$db_user="exampleuser";
-$db_password="examplepass";
+$db_server="db";
+$db_user="myuser";
+$db_password="mypassword";
 // $mysqli = new mysqli($db_serve, $db_user, $db_password);
 $error_log_location="/var/log/beodb-graphics.log";
 $database="moussala";
-
-
 
 function get_Y_lines($min,$max)
    {

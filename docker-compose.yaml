@@ -1,0 +1,25 @@
+services:
+  web:
+    image: beodb
+    restart: always
+    ports:
+      - 8081:80
+    environment:
+      BEO_DB_HOST: db
+      BEO_DB_USER: myuser
+      BEO_DB_PASSWORD: mypassword
+      BEO_DB_NAME: moussala
+    depends_on: 
+      - db
+  db:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_DATABASE: moussala
+      MYSQL_USER: myuser
+      MYSQL_PASSWORD: mypassword
+      MYSQL_ROOT_PASSWORD: mypassword
+    volumes:
+      - db:/var/lib/mysql
+volumes:
+  db:
