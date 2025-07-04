@@ -11,12 +11,16 @@ set_time_limit(1800);
 include("settings.php");
 ####################################################################
 ini_set("memory_limit","300M");
-$db_server="db";
-$db_user="myuser";
-$db_password="mypassword";
-// $mysqli = new mysqli($db_serve, $db_user, $db_password);
+// $db_server="db";
+// $db_user="myuser";
+// $db_password="mypassword";
+// $database="moussala";
+
+$db_server=getenv("BEO_DB_HOST");
+$db_user=getenv("BEO_DB_USER");
+$db_password=getenv("BEO_DB_PASSWORD");
+$database=getenv("BEO_DB_NAME");
 $error_log_location="/var/log/beodb-graphics.log";
-$database="moussala";
 
 function get_Y_lines($min,$max)
    {
@@ -154,7 +158,7 @@ function get_Y_lines($min,$max)
 	$temp=0;
     foreach($result_arr as $key=>$value)
 	   {
-	     if (eregi("[0123456789]*\.([0123456789]*)",$value,$temp_arr))
+	     if (preg_match("/[0123456789]*\.([0123456789]*)/",$value,$temp_arr))
 		    {
 			  $temp=strlen($temp_arr[1]);
 			}
@@ -202,7 +206,7 @@ function get_meteo_data($date)
     $today=date("Y-m-d",strtotime($date));
     for ($i=2;$i<$count_lines_arr;$i++)
       {
-        eregi("([^\,]*)\,([^\,]*)\,([^\,]*)\,([^\,]*)\,([^\,]*)\,([^\,]*)\,[^\,]*\,([^\,]*)\,([^\,]*)",$lines_arr_all[$i],$raw_data);
+        preg_match("/([^\,]*)\,([^\,]*)\,([^\,]*)\,([^\,]*)\,([^\,]*)\,([^\,]*)\,[^\,]*\,([^\,]*)\,([^\,]*)/",$lines_arr_all[$i],$raw_data);
         $rearranged_date=rearrange_date($raw_data[1]);
         if ($rearranged_date==$today)
           {
@@ -247,7 +251,7 @@ function get_harwell_data($date,$precision=1)
 
      for ($i=0;$i<$lines_arr_1_size;$i++)
        {
-     	$ok=eregi("([0123456789]{1,})[ \t]{1,}([0123456789]{1,})[\t ]{1,}([0123456789]{1,}):([0123456789]{1,})",$lines_arr_1[$i],$raw_data);
+     	$ok=preg_match("/([0123456789]{1,})[ \t]{1,}([0123456789]{1,})[\t ]{1,}([0123456789]{1,}):([0123456789]{1,})/",$lines_arr_1[$i],$raw_data);
 		if ($ok)
 		   {
 		     if (strlen($raw_data[3])==1) {$raw_data[3]="0".$raw_data[3];}
@@ -266,7 +270,7 @@ function get_harwell_data($date,$precision=1)
 	 $temp_arr[0]=-1;
      for ($i=0;$i<$lines_arr_2_size;$i++)
        {
-     	$ok=eregi("([0123456789]{1,})[ \t]{1,}([0123456789]{1,})[\t ]{1,}([0123456789]{1,}):([0123456789]{1,})",$lines_arr_2[$i],$raw_data);
+     	$ok=preg_match("/([0123456789]{1,})[ \t]{1,}([0123456789]{1,})[\t ]{1,}([0123456789]{1,}):([0123456789]{1,})/",$lines_arr_2[$i],$raw_data);
 		if ($ok)
 		   {
 		     if (strlen($raw_data[3])==1) {$raw_data[3]="0".$raw_data[3];}
@@ -379,7 +383,7 @@ function get_uv_data($date)
 	 $go=false;
      for ($i=0;$i<$lines_arr_1_size;$i++)
        {
-     	$ok=eregi("([0123456789\.]{1,})[ \t ]{1,}([0123456789]{1,}):([0123456789]{1,})",$lines_arr_1[$i],$raw_data);
+     	$ok=preg_match("/([0123456789\.]{1,})[ \t ]{1,}([0123456789]{1,}):([0123456789]{1,})/",$lines_arr_1[$i],$raw_data);
 		if ($ok)
 		   {
 		     if (strlen($raw_data[2])==1) {$raw_data[2]="0".$raw_data[2];}
@@ -396,7 +400,7 @@ function get_uv_data($date)
 	 $temp_arr[0]=-1;
      for ($i=0;$i<$lines_arr_2_size;$i++)
        {
-     	$ok=eregi("([0123456789\.]{1,})[ \t ]{1,}([0123456789]{1,}):([0123456789]{1,})",$lines_arr_2[$i],$raw_data);
+     	$ok=preg_match("/([0123456789\.]{1,})[ \t ]{1,}([0123456789]{1,}):([0123456789]{1,})/",$lines_arr_2[$i],$raw_data);
 		if ($ok)
 		   {
 		     if (strlen($raw_data[2])==1) {$raw_data[2]="0".$raw_data[2];}
@@ -455,7 +459,7 @@ function get_uv_b_data($date)
 	 $go=false;
      for ($i=0;$i<$lines_arr_1_size;$i++)
        {
-     	$ok=eregi("([0123456789\.]{1,})[ \t ]{1,}([0123456789]{1,}):([0123456789]{1,})",$lines_arr_1[$i],$raw_data);
+     	$ok=preg_match("/([0123456789\.]{1,})[ \t ]{1,}([0123456789]{1,}):([0123456789]{1,})/",$lines_arr_1[$i],$raw_data);
 		if ($ok)
 		   {
 		     if (strlen($raw_data[2])==1) {$raw_data[2]="0".$raw_data[2];}
@@ -472,7 +476,7 @@ function get_uv_b_data($date)
 	 $temp_arr[0]=-1;
      for ($i=0;$i<$lines_arr_2_size;$i++)
        {
-     	$ok=eregi("([0123456789\.]{1,})[ \t ]{1,}([0123456789]{1,}):([0123456789]{1,})",$lines_arr_2[$i],$raw_data);
+     	$ok=preg_match("/([0123456789\.]{1,})[ \t ]{1,}([0123456789]{1,}):([0123456789]{1,})/",$lines_arr_2[$i],$raw_data);
 		if ($ok)
 		   {
 		     if (strlen($raw_data[2])==1) {$raw_data[2]="0".$raw_data[2];}
@@ -538,10 +542,10 @@ function get_environ_data($date)
 	 $lines_arr_size=count($lines_arr);
 	 for ($i=0;$i<$lines_arr_size;$i++)
 	    {
-		  $ok=eregi("([0123456789:]{5})[ ]{1,}([0123456789\,]{5})[ ]{1,}([0123456789\,]{5})[ ]{1,}([0123456789\,]{5})",$lines_arr[$i],$result);
+		  $ok=preg_match("/([0123456789:]{5})[ ]{1,}([0123456789\,]{5})[ ]{1,}([0123456789\,]{5})[ ]{1,}([0123456789\,]{5})/",$lines_arr[$i],$result);
 		  if ($ok)
 		     {
-			   $result[1]=eregi_replace("24:","00:",$result[1]);
+			   $result[1]=preg_replace("/24:/","00:",$result[1]);
 			   $unix_time=strtotime($date." ".$result[1]);
 			   $final_arr["NO"][$unix_time]=(float) (ereg_replace(",",".",$result[2]));
 			   $final_arr["NO2"][$unix_time]=(float) (ereg_replace(",",".",$result[3]));
@@ -573,7 +577,7 @@ function rearrange_date($date)
 function make_readable_date($date)
    {
    	$date=(string) $date;
-   	return date("Y-m-d",strtotime($date));
+   	return date("Y-m-d",strtotime("20".$date));
    }
 
 
@@ -728,6 +732,7 @@ function draw($image,$data,$color,$pattern,$X_dimension,$Y_dimension,$device_nam
     $height=ImageSY($image)-$Y_offset;
     $max_time=get_max_key($data);
     $min_time=get_min_key($data);
+
     $padding=(get_max_value($data)-get_min_value($data))*0.03;
 
     if ($max_value == "auto")
@@ -769,7 +774,6 @@ function draw($image,$data,$color,$pattern,$X_dimension,$Y_dimension,$device_nam
     $first_date=date("ymd",$min_time);
 	$last_date=date("ymd",$max_time);
 
-
     if ($make_chart)
       {
        $grey=ImageColorAllocate($image,200,200,200);
@@ -786,7 +790,7 @@ function draw($image,$data,$color,$pattern,$X_dimension,$Y_dimension,$device_nam
         foreach($Y_lines as $key=>$value)
           {
 		   $value_text=$value;
-		   $value=eregi_replace("[ ,]*","",$value);
+		   $value=preg_replace("/[ ,]*/","",$value);
            $current_Y_position=$height - ($Y_factor*($value-$min_value));
            ImageLine($image,1+$X_offset,$current_Y_position,$width-2+$X_offset,$current_Y_position,$grey);
            $Y_number_position=$current_Y_position-(ImageFontHeight($font_number)/2);
@@ -963,7 +967,7 @@ function draw($image,$data,$color,$pattern,$X_dimension,$Y_dimension,$device_nam
           foreach($Y_lines as $key=>$value)
             {
 		     $value_text=$value;
-		     $value=eregi_replace("[ ,]*","",$value);
+		     $value=preg_replace("/[ ,]*/","",$value);
              $current_Y_position=$height - ($Y_factor*($value-$min_value));
              ImageLine($image,1+$X_offset,$current_Y_position,$width-2+$X_offset,$current_Y_position,$grey);
              $Y_number_position=$current_Y_position-(ImageFontHeight($font_number)/2);
@@ -1016,7 +1020,7 @@ function draw($image,$data,$color,$pattern,$X_dimension,$Y_dimension,$device_nam
         foreach($Y_lines as $key=>$value)
           {
 		   $value_text=$value;
-		   $value=eregi_replace("[ ,]*","",$value);
+		   $value=preg_replace("/[ ,]*/","",$value);
            $current_Y_position=$height - ($Y_factor*($value-$min_value));
            ImageLine($image,1+$X_offset,$current_Y_position,4+$X_offset,$current_Y_position,$black);
            $Y_number_position=$current_Y_position-(ImageFontHeight($font_number)/2);
@@ -1051,7 +1055,6 @@ else {
 	   ImageLine($image,$X_offset,0,$X_offset,$height-1,$black);
 	   imagefilledpolygon($image, $coordinats, 6, $back_ground);
 
-
         for ($i=0;$i<$days_array_count;$i++)
 		   {
 			 $seconds=$days_array[$i]-$min_time;
@@ -1063,8 +1066,6 @@ else {
 			     Imagestring($image,$font_number,$X_days+1,$height+1,$days,$font_color);
 			   }
            }
-
-
 
         $hours_array=array_diff($hours_array,$days_array);
         foreach ($hours_array as $key=>$value)
@@ -1084,16 +1085,11 @@ else {
 			   }
            }
 
-
-
-
-
-
 	   $device_name_x_position=$text_spacing;
        $device_name_y_position=$height+$Y_offset-ImageFontHeight($font_number)-$text_spacing;
-	   if (eregi("[0123456789]",$device_name))
+	   if (preg_match("/[0123456789]/",$device_name))
 	      {
-		    eregi("([^0123456789]*)([0123456789])(.*)",$device_name,$split);
+		    preg_match("/([^0123456789]*)([0123456789])(.*)/",$device_name,$split);
 		    ImageString($image,$font_number, $device_name_x_position, $device_name_y_position,$split[1],$font_color);
 		    ImageString($image,$font_number-1,$device_name_x_position+ImageFontWidth($font_number)*strlen($split[1]), $device_name_y_position+(ImageFontHeight($font_number)-ImageFontHeight($font_number-1)),$split[2],$font_color);
 		    ImageString($image,$font_number, $device_name_x_position+(ImageFontWidth($font_number)*strlen($split[1])+ImageFontWidth($font_number-1)*strlen($split[2])), $device_name_y_position,$split[3],$font_color);
@@ -1102,7 +1098,6 @@ else {
 		  {
 		    ImageString($image,$font_number,$device_name_x_position,$device_name_y_position,$device_name,$font_color);
 		  }
-
 
 	   if ($first_date==$last_date)
 	      {
@@ -1122,11 +1117,11 @@ else {
 
        $Y_x_dimension_position=(ImageFontHeight($font_number)-8);
        $Y_y_dimension_position=(strlen($Y_dimension)*ImageFontWidth($font_number))+10;
-	   if (eregi("[0123456789]",$Y_dimension))
+	   if (preg_match("/[0123456789]/",$Y_dimension))
 	      {
-		    eregi("([^0123456789]*)([0123456789])(.*)",$Y_dimension,$split);
+		    preg_match("/([^0123456789]*)([0123456789])(.*)/",$Y_dimension,$split);
 		    ImageStringUp($image,$font_number, $Y_x_dimension_position, $Y_y_dimension_position,$split[1],$font_color);
-			if (eregi("m2",$Y_dimension))
+			if (preg_match("/m2/",$Y_dimension))
 			   {
 		         ImageStringUp($image,$font_number-1, $Y_x_dimension_position, $Y_y_dimension_position-ImageFontWidth($font_number)*strlen($split[1]),$split[2],$font_color);
 			   }
@@ -1209,7 +1204,7 @@ function get_data($table,$field,$start_date,$stop_date){
       return false;
    }
 
-   while ($line = mysql_fetch_array($result, MYSQL_NUM)) {   	
+   while ($line = mysqli_fetch_array($result, MYSQLI_NUM)) {   	
       $data_arr[$line[0]]=$line[1];
    }
    if (isset($data_arr) && $data_arr) {

@@ -18,7 +18,7 @@ function purge_statistics($var)
            }
         else
            {
-            $last_time=eregi_replace("#.*$","",$arr[$key][count($arr[$key])-1]);
+            $last_time=preg_match("/#.*$/","",$arr[$key][count($arr[$key])-1]);
             if ($last_time+120 < time()) 
                {
                 unset($arr[$key]);
@@ -75,11 +75,11 @@ function proxy_tampered($arr,$automatic_attack_count)
         {
          if ($i==$count) 
             {
-             $temp=eregi_replace("[0123456789]{1,}#","",$arr[$i]);
+             $temp=preg_match("/[0123456789]{1,}#/","",$arr[$i]);
             }
          else
             {
-             if ($temp==eregi_replace("[0123456789]{1,}#","",$arr[$i]))
+             if ($temp==preg_match("/[0123456789]{1,}#/","",$arr[$i]))
                 {
                  $proxy=$temp;
                 }
@@ -184,7 +184,7 @@ function in_black_list($IP)
     global $black_list_file,$black_list_duration;
     $temp_arr=@file($black_list_file);
     $black_list=@unserialize($temp_arr[0]);
-    $IP_temp=eregi_replace("p=.*$","p=All",$IP);
+    $IP_temp=preg_match("/p=.*$/","p=All",$IP);
 
     if (isset($black_list[$IP_temp]))
        {

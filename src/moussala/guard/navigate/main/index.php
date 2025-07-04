@@ -185,7 +185,7 @@ if (@$_GET["drive"])
    {
     if (@$_GET["path"]) 
        {
-        $path=eregi_replace("[^/]*/../$","",$_GET["path"]);
+        $path=preg_match("/[^/]*/../$/","",$_GET["path"]);
        }
     else
        {

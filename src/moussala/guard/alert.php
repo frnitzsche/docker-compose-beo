@@ -56,11 +56,11 @@ if ($_SERVER["SERVER_ADDR"] == $_SERVER["REMOTE_ADDR"])
             {
              if ($i==0) 
                 {
-                 $temp_var=eregi_replace("^[0123456789]+#","",$arr[$i]);
+                 $temp_var=preg_match("/^[0123456789]+#/","",$arr[$i]);
                 }
              else
                 {
-                 if ($temp_var != eregi_replace("^[0123456789]+#","",$arr[$i])) {$tampered=1;}
+                 if ($temp_var != preg_match("/^[0123456789]+#/","",$arr[$i])) {$tampered=1;}
                 }
             }
 
@@ -85,7 +85,7 @@ if ($_SERVER["SERVER_ADDR"] == $_SERVER["REMOTE_ADDR"])
              $message.=sprintf("%' -7s%s",$COUNT[$i]," at ".date("H:i:s j M Y",$arr[$i-1]));
              if ($tampered)
                 {
-                 $message.=" - <font color=red>X_FORWARDED_FOR: ".eregi_replace("^[0123456789]+#","",$arr[$i-1]."</font>");
+                 $message.=" - <font color=red>X_FORWARDED_FOR: ".preg_match("/^[0123456789]+#/","",$arr[$i-1]."</font>");
                 }
              $message.=($i<count($arr)?",\r\n":".");
             }
