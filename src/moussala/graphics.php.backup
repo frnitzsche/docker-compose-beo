@@ -1192,13 +1192,13 @@ function get_data($table,$field,$start_date,$stop_date){
    global $db_server,$db_user,$db_password,$database;
    $start_timestamp="20".$start_date."000000";
    $stop_timestamp="20".$stop_date."235959";
-   $link=mysql_pconnect($db_server,$db_user,$db_password);
+   $link=mysqli_connect($db_server,$db_user,$db_password);
    if (!$link){
       error("Can't connect to database '".$database."' on '".$db_server."' using username '".$db_user."' and passord '".$db_password."'",$php_errormsg);
       return false;
    }
 
-   $selection=mysql_select_db($database,$link);
+   $selection=mysqli_select_db($link, $database);
    if (!$selection) {
       error("mysql_select-db func failed selecting $database".mysql_error($link));
       return false;

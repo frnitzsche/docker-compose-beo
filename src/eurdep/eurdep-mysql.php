@@ -235,7 +235,7 @@ $link=mysql_connect($db_server,$username,$password);
 if (!$link){
    error("No connection to server",$mysql_error_message); exit;
 }
-$OK=mysql_select_db($database,$link);
+$OK=mysqli_select_db($link, $database);
 if (!$OK) {
    error("Can not select data base $database",$mysql_error_message); exit;
 }

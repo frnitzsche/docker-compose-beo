@@ -1,2 +1,10 @@
-FROM php:8.3.23RC1-apache-bookworm
+FROM php:7.4-apache
 COPY src/ /var/www/html/
+RUN apt-get update && apt-get install -y \
+		libfreetype-dev \
+		libjpeg62-turbo-dev \
+		libpng-dev \
+        # php-mysqli \
+	&& docker-php-ext-configure gd --with-freetype --with-jpeg \
+	&& docker-php-ext-install -j$(nproc) gd \
+    && docker-php-ext-install mysqli

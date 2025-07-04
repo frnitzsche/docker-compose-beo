@@ -11,10 +11,11 @@ set_time_limit(1800);
 include("settings.php");
 ####################################################################
 ini_set("memory_limit","300M");
-$db_server="localhost";
-$db_user="php";
-$db_password="php";
-$error_log_location="./vaisala.log";
+$db_server="docker-compose-wordpress_db_1";
+$db_user="exampleuser";
+$db_password="examplepass";
+// $mysqli = new mysqli($db_serve, $db_user, $db_password);
+$error_log_location="/var/log/beodb-graphics.log";
 $database="moussala";
 
 
@@ -1185,27 +1186,27 @@ function show_error($text="Error")
 function error($message,$error_var=""){
    global $error_log_location;
    $error_message="\r\n".date("m.d.Y H:i:s")." - ".$message."   ".$error_var;
-   error_log($error_message,3,$error_log_location);
+//    error_log($error_message,3,$error_log_location);
 }
 
 function get_data($table,$field,$start_date,$stop_date){
    global $db_server,$db_user,$db_password,$database;
    $start_timestamp="20".$start_date."000000";
    $stop_timestamp="20".$stop_date."235959";
-   $link=mysql_pconnect($db_server,$db_user,$db_password);
+   $link=mysqli_connect($db_server,$db_user,$db_password);
    if (!$link){
       error("Can't connect to database '".$database."' on '".$db_server."' using username '".$db_user."' and passord '".$db_password."'",$php_errormsg);
       return false;
    }
 
-   $selection=mysql_select_db($database,$link);
+   $selection=mysqli_select_db($link, $database);
    if (!$selection) {
-      error("mysql_select-db func failed selecting $database".mysql_error($link));
+      error("mysql_select-db func failed selecting $database".mysqli_error($link));
       return false;
    }
 
    $query="SELECT unix_timestamp(timestamp),$field FROM $table WHERE timestamp >= $start_timestamp and timestamp <= $stop_timestamp AND $field nOT LIKE 'Null' ORDER BY timestamp;";
-   $result=mysql_query($query,$link);
+   $result=mysqli_query($link, $query);
    if (!$result) {
       return false;
    }

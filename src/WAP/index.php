@@ -19,7 +19,7 @@ $link=mysql_connect($host,$username,$password);
 if (!$link) {
    error("No connection to the $host ",$mysql_error_message);
 }
-$OK=mysql_select_db("moussala",$link);
+$OK=mysqli_select_db($link, "moussala");
 if (!$OK) {
    error("Can not select database $database ",$mysql_error_message);
 }
