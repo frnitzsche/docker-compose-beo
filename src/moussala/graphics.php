@@ -11,10 +11,6 @@ set_time_limit(1800);
 include("settings.php");
 ####################################################################
 ini_set("memory_limit","300M");
-// $db_server="db";
-// $db_user="myuser";
-// $db_password="mypassword";
-// $database="moussala";
 
 $db_server=getenv("BEO_DB_HOST");
 $db_user=getenv("BEO_DB_USER");
