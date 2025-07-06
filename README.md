@@ -1,3 +1,12 @@
+### Command Line
+
+```shell
+$ docker run -d -p 80:80 --name beo-web frnitzsche/beo-web
+```
+
+### Docker Compose
+
+```yaml
 services:
   web:
     image: frnitzsche/beo-web
@@ -25,3 +34,4 @@ services:
       - db:/var/lib/mysql
 volumes:
   db:
+```

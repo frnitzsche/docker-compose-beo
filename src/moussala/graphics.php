@@ -13,9 +13,9 @@ include("settings.php");
 ini_set("memory_limit","300M");
 
 $db_server=getenv("BEO_DB_HOST");
+$database=getenv("BEO_DB_NAME");
 $db_user=getenv("BEO_DB_USER");
 $db_password=getenv("BEO_DB_PASSWORD");
-$database=getenv("BEO_DB_NAME");
 $error_log_location="/var/log/beodb-graphics.log";
 
 function get_Y_lines($min,$max)
