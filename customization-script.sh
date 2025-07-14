@@ -5,11 +5,11 @@ sudo systemctl enable docker.service && \
 sudo systemctl start docker.service && \
 sudo curl -L https://github.com/docker/compose/releases/latest/download/docker-compose-linux-$(uname -m) -o /usr/bin/docker-compose && \
 sudo chmod 755 /usr/bin/docker-compose && \
-cd /docker-compose-wordpress && \
+cd /docker-compose-beo && \
 sudo docker-compose up -d && \
 sudo wget --trust-server-names https://www.dynu.com/support/downloadfile/70 && \
 sudo yum install ./dynu-ip-update-client_1.0.2-1_amd64.rpm -y && \
-sudo cp /docker-compose-wordpress/appsettings.json /usr/share/dynu-ip-update-client/appsettings.json && \
+sudo cp /docker-compose-beo/appsettings.json /usr/share/dynu-ip-update-client/appsettings.json && \
 sudo systemctl restart dynu-ip-update-client.service && \
 sleep 5s && \
 sudo yum install nginx certbot certbot-nginx -y && \
