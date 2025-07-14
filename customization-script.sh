@@ -29,6 +29,6 @@ EOF
 
 sudo systemctl enable nginx.service && \
 sudo systemctl restart nginx.service && \
-sleep 10s
+sleep 10s && \
 sudo certbot --nginx -d $host -m my@mail.com --agree-tos -n
 
