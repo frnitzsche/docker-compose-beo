@@ -35,6 +35,6 @@ sudo systemctl restart nginx.service && \
 sleep 60s && \
 sudo certbot --nginx -d $host -m my@mail.com --agree-tos -n --test-cert
 
-sudo unpigz beodb-full.sql.zip
-sudo yum install mariadb1011-client-utils -y
+sudo unpigz beodb-full.sql.zip && \
+sudo yum install mariadb1011-client-utils -y && \
 mysql -h 127.0.0.1 -u myuser -pmypassword moussala < /docker-compose-beo/beodb-full.sql
