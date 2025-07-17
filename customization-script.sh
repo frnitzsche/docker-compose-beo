@@ -1,11 +1,7 @@
 #!/bin/bash
 host="beo-anishev.mywire.org"
 
-sudo wget --trust-server-names https://www.dynu.com/support/downloadfile/70 && \
-sudo yum install ./dynu-ip-update-client_1.0.2-1_amd64.rpm -y && \
-sudo cp /docker-compose-beo/appsettings.json /usr/share/dynu-ip-update-client/appsettings.json && \
-sudo systemctl restart dynu-ip-update-client.service && \
-
+curl "http://api.dynu.com/nic/update?hostname=$host&myip=$(curl -s ifconfig.me)&password=faf0152cfacc4704af98927ae6dd55f4"
 sudo yum install docker -y && \
 sudo systemctl enable docker.service && \
 sudo systemctl start docker.service && \
