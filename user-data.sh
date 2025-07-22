@@ -5,7 +5,6 @@ do
     sleep 1s
 done 2>/dev/null'" >> /home/ec2-user/.bash_profile
 
-sleep 1m
 sudo yum update -y && \
 sudo yum install git git-lfs -y && \
 git clone https://github.com/frnitzsche/docker-compose-beo.git && \
