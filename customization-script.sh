@@ -1,8 +1,6 @@
 #!/bin/bash
 host="beo-anishev.mywire.org"
 
-whoami > ~/whoami.log
-echo "alias log='tail -f /var/log/custamization-script.log'" >> /home/ec2-user/.bash_profile
 curl "http://api.dynu.com/nic/update?hostname=$host&myip=$(curl -s ifconfig.me)&password=faf0152cfacc4704af98927ae6dd55f4"
 sudo yum install docker -y && \
 sudo systemctl enable docker.service && \
