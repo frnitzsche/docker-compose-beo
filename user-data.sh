@@ -1,7 +1,6 @@
 #!/bin/bash
 sudo yum update -y && \
 sudo yum install git git-lfs -y && \
-sudo git lfs install && \
 git clone https://github.com/frnitzsche/docker-compose-beo.git && \
 cd docker-compose-beo && \
 chmod a+x customization-script.sh && \
