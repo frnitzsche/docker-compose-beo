@@ -1,6 +1,8 @@
 #!/bin/bash
 host="beo-anishev.mywire.org"
 
+whoami > /var/log/whoami.log // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+echo "alias log='tail -f /var/log/custamization-script.log'" >> /home/ec2-user/.bashrc
 curl "http://api.dynu.com/nic/update?hostname=$host&myip=$(curl -s ifconfig.me)&password=faf0152cfacc4704af98927ae6dd55f4"
 sudo yum install docker -y && \
 sudo systemctl enable docker.service && \
@@ -29,7 +31,7 @@ EOF
 sudo systemctl enable nginx.service && \
 sudo systemctl restart nginx.service && \
 sleep 60s && \
-sudo certbot --nginx -d $host -m my@mail.com --agree-tos -n --test-cert
+sudo certbot --nginx -d $host -m my@mail.com --agree-tos -n 
 
 sudo aws s3 cp s3://beo-anishev/beodb.bz2 /docker-compose-beo
 sudo bzip2 -d beodb.bz2 && \
