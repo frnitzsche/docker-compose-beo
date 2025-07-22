@@ -1,5 +1,5 @@
 #!/bin/bash
-echo "alias log='tail -f /var/log/custamization-script.log'" >> /home/ec2-user/.bash_profile
+echo "alias log='tail -n 25 -f /var/log/custamization-script.log'" >> /home/ec2-user/.bash_profile
 sudo yum update -y && \
 sudo yum install git git-lfs -y && \
 git clone https://github.com/frnitzsche/docker-compose-beo.git && \
