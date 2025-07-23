@@ -63,7 +63,7 @@ echo '>>>>> Installing MariaDB client tools' && \
 sudo yum install mariadb1011-client-utils -y && \
 
 echo '>>>>> Installing Pipe Viewer' && \
-sudo yum install pv -y && \
+sudo yum install pv -y # && \
 
 # echo '>>>>> Importing beodb sql dump file' && \
 # pv -c /$dir/beodb | mysql -h 127.0.0.1 -u myuser -p mypassword moussala
