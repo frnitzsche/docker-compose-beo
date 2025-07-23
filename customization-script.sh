@@ -48,7 +48,7 @@ sudo systemctl enable nginx.service && \
 sudo systemctl restart nginx.service && \
 
 echo '>>>>> Sleeping for 60 sec' && \
-sleep 60s && && \
+sleep 60s && \
 
 echo '>>>>> Running certbot' && \
 sudo certbot --nginx -d $host -m my@mail.com --agree-tos -n --test-cert && \
