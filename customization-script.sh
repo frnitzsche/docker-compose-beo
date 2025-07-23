@@ -66,4 +66,4 @@ echo '>>>>> Installing Pipe Viewer' && \
 sudo yum install pv -y # && \
 
 # echo '>>>>> Importing beodb sql dump file' && \
-# pv -c /$dir/beodb | mysql -h 127.0.0.1 -u myuser -p mypassword moussala
+# pv -c /$dir/beodb | mysql -h 127.0.0.1 -u myuser -pmypassword moussala
