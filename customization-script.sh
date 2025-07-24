@@ -15,7 +15,7 @@ sudo systemctl start docker.service && \
 echo '>>>>> Installing docker-compose' && \
 sudo curl -L https://github.com/docker/compose/releases/latest/download/docker-compose-linux-$(uname -m) -o /usr/bin/docker-compose && \
 sudo chmod 755 /usr/bin/docker-compose && \
-cd /$dir && \
+cd $dir && \
 
 echo '>>>>> Running docker-compose' && \
 sudo docker-compose up -d && \
@@ -54,10 +54,10 @@ echo '>>>>> Running certbot' && \
 sudo certbot --nginx -d $host -m my@mail.com --agree-tos -n --test-cert && \
 
 echo '>>>>> Downloading beodb sql dump file from S3 service' && \
-sudo aws s3 cp s3://beo-anishev/beodb.bz2 /$dir && \
+sudo aws s3 cp s3://beo-anishev/beodb.bz2 $dir && \
 
 echo '>>>>> Uncompressing beodb sql dump file' && \
-sudo bzip2 -d beodb.bz2 && \
+sudo bzip2 -d beodb.bz2 >  $dir/beodb.sql && \
 
 echo '>>>>> Installing MariaDB client tools' && \
 sudo yum install mariadb1011-client-utils -y && \
@@ -65,5 +65,5 @@ sudo yum install mariadb1011-client-utils -y && \
 echo '>>>>> Installing Pipe Viewer' && \
 sudo yum install pv -y # && \
 
-# echo '>>>>> Importing beodb sql dump file' && \
-# pv -c /$dir/beodb | mysql -h 127.0.0.1 -u myuser -pmypassword moussala
+echo '>>>>> Importing beodb.sql dump file into MarriaDB' && \
+pv -c $dir/beodb.sql | mysql -h 127.0.0.1 -u root -pmypassword moussala
