@@ -65,5 +65,5 @@ sudo yum install mariadb1011-client-utils -y && \
 echo '>>>>> Installing Pipe Viewer' && \
 sudo yum install pv -y # && \
 
-echo '>>>>> Importing beodb.sql dump file into MarriaDB' && \
-pv -c $dir/beodb.sql | mysql -h 127.0.0.1 -u root -pmypassword moussala
+# echo '>>>>> Importing beodb.sql dump file into MarriaDB' && \
+# pv -c $dir/beodb.sql | mysql -h 127.0.0.1 -u root -pmypassword moussala
