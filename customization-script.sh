@@ -8,6 +8,9 @@ curl "http://api.dynu.com/nic/update?hostname=$host&myip=$(curl -s ifconfig.me)&
 echo '>>>>> Installing docker nginx certbot certbot-nginx pv mariadb1011-client-utils' && \
 yum install -d1 docker nginx certbot certbot-nginx pv mariadb1011-client-utils -y && \
 
+echo '>>>>> Strarting certbot-renew.timer' && \
+systemctl start certbot-renew.timer && \
+
 echo '>>>>> Strarting docker service' && \
 systemctl enable --now docker.service && \
 
@@ -57,3 +60,5 @@ pv -er beodb.bz2 | bzip2 -dc > beo.sql
 echo '>>>>> Importing beodb.sql dump file into MarriaDB' && \
 pv -c $dir/beo.sql | mysql -h 127.0.0.1 -u root -pmypassword moussala
 
+# Certbot auto renewal timer is not started by default.
+# Run 'systemctl start certbot-renew.timer' to enable automatic renewals.
