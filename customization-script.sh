@@ -55,5 +55,5 @@ echo '>>>>> Uncompressing beodb sql dump file' && \
 pv -er beodb.bz2 | bzip2 -dc > beo.sql
 
 echo '>>>>> Importing beodb.sql dump file into MarriaDB' && \
-pv -c $dir/beodb.sql | mysql -h 127.0.0.1 -u root -pmypassword moussala
+pv -c $dir/beo.sql | mysql -h 127.0.0.1 -u root -pmypassword moussala
 
