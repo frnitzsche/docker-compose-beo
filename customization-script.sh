@@ -55,10 +55,10 @@ echo '>>>>> Downloading beodb sql dump file from S3 service' && \
 aws s3 cp s3://beo-anishev/beodb.bz2 $dir && \
 
 echo '>>>>> Uncompressing beodb sql dump file' && \
-pv -er beodb.bz2 | bzip2 -dc > beo.sql
+pv  beodb.bz2 | bzip2 -dc > beo.sql
 
 echo '>>>>> Importing beodb.sql dump file into MarriaDB' && \
-pv -c $dir/beo.sql | mysql -h 127.0.0.1 -u root -pmypassword moussala
+pv  $dir/beo.sql | mysql -h 127.0.0.1 -u root -pmypassword moussala
 
 # Certbot auto renewal timer is not started by default.
 # Run 'systemctl start certbot-renew.timer' to enable automatic renewals.
